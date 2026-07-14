@@ -126,6 +126,31 @@ binary_sensor:
     # on_press:
     #   - logger.log: "Rotary Button Pressed"
 
+  - platform: template
+    id: window_request
+    name: "Fenster öffnen?"
+    lambda: |-
+      // Temperature Control
+      if (id(inside_temperature_state).state > 0)  // Too warm inside
+        return id(outside_temperature_relation).state <= 0; 
+      if (id(inside_temperature_state).state < 0)  // Too cold inside
+        return id(outside_temperature_relation).state >= 0;
+      // Temperature OK -> Humidity Control
+      if (id(inside_humidity_state).state > 0)  // Too humid inside
+        return id(outside_humidity_relation).state <= 0;
+      if (id(inside_humidity_state).state < 0)  // Too dry inside
+        return id(outside_humidity_relation).state >= 0;
+      // Keep window closed
+      return false;
+
+  - platform: template
+    id: dehumidify_request
+    name: "Luftentfeuchtung erforderlich"
+    lambda: |-
+      return id(inside_humidity_state).state > 0 &&
+             !id(window_request).state;
+
+
 i2c:
   - id: i2c_inside  # indoor sensor + Display
     sda: GPIO21
