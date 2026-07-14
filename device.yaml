@@ -153,3 +153,41 @@ cover:
     stop_action:
       - switch.turn_off: relay_open
       - switch.turn_off: relay_close
+
+
+font:
+  - file: "gfonts://Roboto"
+    id: font_text
+    size: 14
+
+  - file: "fonts/materialdesignicons-webfont.ttf"
+    id: font_icons
+    size: 16
+    glyphs:
+      - "\U000F0F9C" # mdi:home-import-outline
+      - "\U000F0F9B" # mdi:home-export-outline
+
+display:
+  - platform: ssd1306_i2c
+    model: "SH1106 128x64"
+    i2c_id: i2c_inside
+    address: 0x3C
+    update_interval: 1s
+
+    lambda: |-
+      // Line 1 - inside
+      it.printf(0, 0, id(font_icons), "\U000F0F9C");   // mdi:home-import-outline
+      it.printf(22, 0, id(font_text), "%.1f°C / %.1f%%",
+                id(inside_temperature).state,
+                id(inside_humidity).state);
+      // Line 2 - outside
+      it.printf(0, 16, id(font_icons), "\U000F0F9B");   // mdi:home-export-outline
+      it.printf(22, 16, id(font_text), "%.1f°C / %.1f%%",
+                id(outside_temperature).state,
+                id(outside_humidity).state);
+
+      // Line 3
+      // reserved
+
+      // Line 4
+      // reserved
