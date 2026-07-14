@@ -46,6 +46,20 @@ binary_sensor:
   - platform: status
     name: "Status"
 
+  - platform: gpio
+    id: rotary_button
+    pin:
+      number: GPIO5
+      mode:
+        input: true
+        pullup: true
+      inverted: true
+    filters:
+      - delayed_on: 10ms
+      - delayed_off: 10ms
+    internal: true
+    # on_press:
+    #   - logger.log: "Rotary Button Pressed"
 
 i2c:
   - id: i2c_inside  # indoor sensor + Display
@@ -108,6 +122,27 @@ sensor:
       state_class: measurement
       accuracy_decimals: 1
     update_interval: 30s
+
+  - platform: rotary_encoder
+    id: rotary_encoder_1
+    pin_a:
+      number: GPIO16
+      mode:
+        input: true
+        pullup: true
+    pin_b:
+      number: GPIO17
+      mode:
+        input: true
+        pullup: true
+    resolution: 1
+    restore_mode: ALWAYS_ZERO
+    internal: true
+
+    on_clockwise:
+      - logger.log: "Turned Clockwise"
+    on_anticlockwise:
+      - logger.log: "Turned Anticlockwise"
 
 
 switch:
