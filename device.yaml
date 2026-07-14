@@ -107,6 +107,44 @@ number:
     unit_of_measurement: "min"
     mode: slider
 
+globals:
+  # variables for minimum open/close time between actions
+  - id: last_motion
+    type: uint32_t
+    restore_value: no
+    initial_value: '0'
+  - id: delay_remaining_ms
+    type: uint32_t
+    restore_value: no
+    initial_value: '0'
+
+script:
+  - id: process_window_request
+    mode: restart
+    then:
+      - lambda: |-
+          const uint32_t minimum_time_ms =
+              (uint32_t)(id(minimum_time).state * 60000.0f);
+          const uint32_t elapsed = millis() - id(last_motion);
+          if (elapsed < minimum_time_ms) {
+            id(delay_remaining_ms) = minimum_time_ms - elapsed;
+          } else {
+            id(delay_remaining_ms) = 0;
+          }
+      - if:
+          condition:
+            lambda: 'return id(delay_remaining_ms) > 0;'
+          then:
+            - delay: !lambda "return id(delay_remaining_ms);"
+      - if:
+          condition:
+            binary_sensor.is_on: window_request
+          then:
+            - cover.open: window
+          else:
+            - cover.close: window
+
+
 binary_sensor:
   - platform: status
     name: "Status"
@@ -142,6 +180,10 @@ binary_sensor:
         return id(outside_humidity_relation).state >= 0;
       // Keep window closed
       return false;
+    on_press:
+      - script.execute: process_window_request
+    on_release:
+      - script.execute: process_window_request
 
   - platform: template
     id: dehumidify_request
@@ -318,12 +360,16 @@ cover:
     open_action:
       - switch.turn_off: relay_close
       - switch.turn_on: relay_open
+      - lambda: |-
+          id(last_motion) = millis();
 
     open_duration: 10s
 
     close_action:
       - switch.turn_off: relay_open
       - switch.turn_on: relay_close
+      - lambda: |-
+          id(last_motion) = millis();
 
     close_duration: 10s
 
