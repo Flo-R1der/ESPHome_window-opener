@@ -209,6 +209,58 @@ sensor:
     on_anticlockwise:
       - logger.log: "Turned Anticlockwise"
 
+  - platform: template
+    id: inside_temperature_state
+    internal: true
+    lambda: |-
+      const float t = id(inside_temperature).state;
+      const float target = id(target_temperature).state;
+      const float h = id(temperature_hysteresis).state / 2.0f;
+      if (t >= target + h)
+        return 1;  // above target temperature
+      if (t <= target - h)
+        return -1; // below target temperature
+      return 0;    // within target range
+    update_interval: 10s
+
+  - platform: template
+    id: inside_humidity_state
+    internal: true
+    lambda: |-
+      const float h = id(inside_humidity).state;
+      const float target = id(target_humidity).state;
+      const float hyst = id(humidity_hysteresis).state / 2.0f;
+      if (h >= target + hyst)
+        return 1;  // above target humidity
+      if (h <= target - hyst)
+        return -1; // below target humidity
+      return 0;    // within target range
+    update_interval: 10s
+
+  - platform: template
+    id: outside_temperature_relation
+    internal: true
+    lambda: |-
+      const float h = id(temperature_hysteresis).state / 2.0f;
+      if (id(outside_temperature).state >= id(inside_temperature).state + h)
+        return 1;  // outside temperature is above inside temperature
+      if (id(outside_temperature).state <= id(inside_temperature).state - h)
+        return -1; // outside temperature is below inside temperature
+      return 0;    // outside temperature is within the hysteresis range
+    update_interval: 5s
+
+  - platform: template
+    id: outside_humidity_relation
+    internal: true
+    lambda: |-
+      const float h = id(humidity_hysteresis).state / 2.0f;
+      if (id(outside_humidity).state >= id(inside_humidity).state + h)
+        return 1;  // outside humidity is above inside humidity
+      if (id(outside_humidity).state <= id(inside_humidity).state - h)
+        return -1; // outside humidity is below inside humidity
+      return 0;    // outside humidity is within the hysteresis range
+    update_interval: 5s
+
 
 switch:
   - platform: gpio
