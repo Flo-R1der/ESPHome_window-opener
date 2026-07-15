@@ -174,8 +174,20 @@ binary_sensor:
       - delayed_on: 10ms
       - delayed_off: 10ms
     internal: true
-    # on_press:
-    #   - logger.log: "Rotary Button Pressed"
+    on_press:
+      then:
+        - lambda: |-
+            id(last_user_input) = millis();
+            if (id(display_page) == 0) {
+              id(display_page) = 1;
+              id(selected_setting) = 1;
+              return;
+            }
+            id(selected_setting)++;
+            if (id(selected_setting) > 6) {
+              id(display_page) = 0;
+              id(selected_setting) = 0;
+            }
 
   - platform: template
     id: window_request
@@ -283,11 +295,64 @@ sensor:
     resolution: 1
     restore_mode: ALWAYS_ZERO
     internal: true
-
     on_clockwise:
-      - logger.log: "Turned Clockwise"
+      then:
+        - lambda: |-
+            if (id(selected_setting) == 0) {  // no setting selected
+              auto call = id(window).make_call();
+              call.set_command_open();  // override actual position
+              call.perform();
+              return;
+            }
+            id(last_user_input) = millis();
+            switch (id(selected_setting)) {
+              case 1:
+                break;  // will be mode selection later
+              case 2:
+                id(target_temperature).publish_state(id(target_temperature).state + 0.5);
+                break;
+              case 3:
+                id(temperature_hysteresis).publish_state(id(temperature_hysteresis).state + 0.2);
+                break;
+              case 4:
+                id(target_humidity).publish_state(id(target_humidity).state + 1.0);
+                break;
+              case 5:
+                id(humidity_hysteresis).publish_state(id(humidity_hysteresis).state + 0.2);
+                break;
+              case 6:
+                id(minimum_time).publish_state(id(minimum_time).state + 1);
+                break;
+            }
     on_anticlockwise:
-      - logger.log: "Turned Anticlockwise"
+      then:
+        - lambda: |-
+            id(last_user_input) = millis();
+            if (id(selected_setting) == 0) {  // no setting selected
+              auto call = id(window).make_call();
+              call.set_command_close();  // override actual position
+              call.perform();
+              return;
+            }
+            switch (id(selected_setting)) {
+              case 1:
+                break;  // will be mode selection later
+              case 2:
+                id(target_temperature).publish_state(id(target_temperature).state - 0.5);
+                break;
+              case 3:
+                id(temperature_hysteresis).publish_state(id(temperature_hysteresis).state - 0.2);
+                break;
+              case 4:
+                id(target_humidity).publish_state(id(target_humidity).state - 1.0);
+                break;
+              case 5:
+                id(humidity_hysteresis).publish_state(id(humidity_hysteresis).state - 0.2);
+                break;
+              case 6:
+                id(minimum_time).publish_state(id(minimum_time).state - 1);
+                break;
+            }
 
   - platform: template
     id: inside_temperature_state
@@ -395,6 +460,9 @@ font:
   - file: "gfonts://Roboto"
     id: font_text
     size: 14
+    glyphs: 
+      - "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZäöüÄÖÜß"
+      - ".,:;!?%°+-±*/=()[]{}<>|_@#$&\"'\\ "
 
   - file: "fonts/materialdesignicons-webfont.ttf"
     id: font_icons
@@ -426,6 +494,9 @@ display:
     update_interval: 1s
 
     lambda: |-
+      // mode icon (used on multiple pages)
+      const char *mode_icon = "\U000F18F2";  // mdi:refresh-auto
+
       if (id(display_page) == 0) {
         // display_page == 0: display the current STATUS page
         // Line 1 - inside
@@ -439,7 +510,6 @@ display:
                   id(outside_temperature).state,
                   id(outside_humidity).state);
         // Line 3 - status
-        const char *mode_icon = "\U000F18F2";  // mdi:refresh-auto
         it.printf(0, 44, id(font_text), "Mode:");
         it.printf(40, 40, id(big_icons), "%s", mode_icon);
         it.line(0, 36, 128, 36);
@@ -474,7 +544,74 @@ display:
       } else if (id(display_page) == 1) {
       
         // display_page == 1: display the SETTINGS page
+        // Line 1 - Mode settings
+        it.printf(0, 0, id(font_text), "Mode:");
+        if (id(selected_setting) == 1) {  // mode
+          it.filled_rectangle(46, 0, 22, 16);
+          it.printf(48, 0, id(font_icons), Color::BLACK, "%s", mode_icon);
+        } else {
+          it.printf(48, 0, id(font_icons), "%s", mode_icon);
+        }
+        // Line 2 - temperature settings
+        it.printf(2, 16, id(font_icons), "\U000F1A7F");  // mdi:thermometer-check
+        if (id(selected_setting) == 2) {  // target_temperature
+          it.filled_rectangle(20, 16, 34, 16);
+          it.printf(22, 16, id(font_text), Color::BLACK, "%.1f",
+                    id(target_temperature).state);
+        } else {
+          it.printf(22, 16, id(font_text), "%.1f",
+                    id(target_temperature).state);
+        }
+        it.printf(56, 16, id(font_text), "±");
+        if (id(selected_setting) == 3) {  // temperature_hysteresis
+          it.filled_rectangle(66, 16, 24, 16);
+          it.printf(68, 16, id(font_text), Color::BLACK, "%.1f",
+                    id(temperature_hysteresis).state);
+        } else {
+          it.printf(68, 16, id(font_text), "%.1f",
+                    id(temperature_hysteresis).state);
+        }
+        // Line 3 - humidity settings
+        it.printf(0, 32, id(font_icons), "\U000F1504");  // mdi:water-check
+        if (id(selected_setting) == 4) {  // target_humidity
+          it.filled_rectangle(20, 32, 34, 16);
+          it.printf(22, 32, id(font_text), Color::BLACK, "%.1f",
+                    id(target_humidity).state);
+        } else {
+          it.printf(22, 32, id(font_text), "%.1f",
+                    id(target_humidity).state);
+        }
+        it.printf(56, 32, id(font_text), "±");
+        if (id(selected_setting) == 5) {  // humidity_hysteresis
+          it.filled_rectangle(66, 32, 24, 16);
+          it.printf(68, 32, id(font_text), Color::BLACK, "%.1f",
+                    id(humidity_hysteresis).state);
+        } else {
+          it.printf(68, 32, id(font_text), "%.1f",
+                    id(humidity_hysteresis).state);
+        }
+        // Line 4 - minimum time settings
+        it.printf(0, 48, id(font_icons), "\U000F0954");  // mdi:clock
+        if (id(selected_setting) == 6) {  // minimum_time
+          it.filled_rectangle(20, 48, 50, 16);
+          it.printf(22, 48, id(font_text), Color::BLACK, "%.0f  min",
+                    id(minimum_time).state);
+        } else {
+          it.printf(22, 48, id(font_text), "%.0f  min",
+                    id(minimum_time).state);
+        }
 
       }
 
+
+# Reset the Display to the status page after 10 seconds of inactivity on the settings page
+interval:
+  - interval: 1s
+    then:
+      - lambda: |-
+          if (id(display_page) == 1 &&
+              millis() - id(last_user_input) > 10000) {
+            id(display_page) = 0;
+            id(selected_setting) = 0;
+          }
 
