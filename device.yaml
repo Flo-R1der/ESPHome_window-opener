@@ -117,6 +117,19 @@ globals:
     type: uint32_t
     restore_value: no
     initial_value: '0'
+  # variables for display page and selected setting
+  - id: display_page
+    type: uint8_t
+    restore_value: no
+    initial_value: '0'
+  - id: selected_setting
+    type: uint8_t
+    restore_value: no
+    initial_value: '0'
+  - id: last_user_input
+    type: uint32_t
+    restore_value: no
+    initial_value: '0'
 
 script:
   - id: process_window_request
@@ -386,9 +399,24 @@ font:
   - file: "fonts/materialdesignicons-webfont.ttf"
     id: font_icons
     size: 16
-    glyphs:
+    glyphs:  # IMPORTANT: Codepoints are from MDI version 7.4.47
       - "\U000F0F9C" # mdi:home-import-outline
       - "\U000F0F9B" # mdi:home-export-outline
+      - "\U000F1A7F" # mdi:thermometer-check
+      - "\U000F1504" # mdi:water-check
+      - "\U000F0954" # mdi:clock
+      - "\U000F18F2" # mdi:refresh-auto
+  - file: "fonts/materialdesignicons-webfont.ttf"
+    id: big_icons
+    size: 24
+    glyphs:  # IMPORTANT: Codepoints are from MDI version 7.4.47
+      - "\U000F0E04" # mdi:thermometer-minus
+      - "\U000F0E05" # mdi:thermometer-plus
+      - "\U000F1A7F" # mdi:thermometer-check
+      - "\U000F1506" # mdi:water-minus
+      - "\U000F150A" # mdi:water-plus
+      - "\U000F1504" # mdi:water-check
+      - "\U000F18F2" # mdi:refresh-auto
 
 display:
   - platform: ssd1306_i2c
@@ -398,19 +426,55 @@ display:
     update_interval: 1s
 
     lambda: |-
-      // Line 1 - inside
-      it.printf(0, 0, id(font_icons), "\U000F0F9C");   // mdi:home-import-outline
-      it.printf(22, 0, id(font_text), "%.1f°C / %.1f%%",
-                id(inside_temperature).state,
-                id(inside_humidity).state);
-      // Line 2 - outside
-      it.printf(0, 16, id(font_icons), "\U000F0F9B");   // mdi:home-export-outline
-      it.printf(22, 16, id(font_text), "%.1f°C / %.1f%%",
-                id(outside_temperature).state,
-                id(outside_humidity).state);
+      if (id(display_page) == 0) {
+        // display_page == 0: display the current STATUS page
+        // Line 1 - inside
+        it.printf(0, 0, id(font_icons), "\U000F0F9C");   // mdi:home-import-outline
+        it.printf(22, 0, id(font_text), "%.1f°C / %.1f%%",
+                  id(inside_temperature).state,
+                  id(inside_humidity).state);
+        // Line 2 - outside
+        it.printf(0, 16, id(font_icons), "\U000F0F9B");   // mdi:home-export-outline
+        it.printf(22, 16, id(font_text), "%.1f°C / %.1f%%",
+                  id(outside_temperature).state,
+                  id(outside_humidity).state);
+        // Line 3 - status
+        const char *mode_icon = "\U000F18F2";  // mdi:refresh-auto
+        it.printf(0, 44, id(font_text), "Mode:");
+        it.printf(40, 40, id(big_icons), "%s", mode_icon);
+        it.line(0, 36, 128, 36);
+        it.line(68, 36, 68, 64);
+        const char *temp_icon;
+        switch ((int) id(inside_temperature_state).state) {
+          case -1:
+            temp_icon = "\U000F0E04";   // mdi:thermometer-minus
+            break;
+          case 1:
+            temp_icon = "\U000F0E05";   // mdi:thermometer-plus
+            break;
+          default:
+            temp_icon = "\U000F1A7F";   // mdi:thermometer-check
+            break;
+        }
+        const char *humid_icon;
+        switch ((int) id(inside_humidity_state).state) {
+          case -1:
+            humid_icon = "\U000F1506";  // mdi:water-minus
+            break;
+          case 1:
+            humid_icon = "\U000F150A";  // mdi:water-plus
+            break;
+          default:
+            humid_icon = "\U000F1504";  // mdi:water-check
+            break;
+        }
+        it.printf(76, 40, id(big_icons), "%s", temp_icon);
+        it.printf(100, 40, id(big_icons), "%s", humid_icon);
+      
+      } else if (id(display_page) == 1) {
+      
+        // display_page == 1: display the SETTINGS page
 
-      // Line 3
-      // reserved
+      }
 
-      // Line 4
-      // reserved
+
