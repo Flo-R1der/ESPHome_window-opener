@@ -191,6 +191,12 @@ script:
       - if:
           condition:
             lambda: |-
+              return id(display_page) == 1 && id(operation_mode).current_option() == "humidity";
+          then:
+            - display.page.show: settings_humidity
+      - if:
+          condition:
+            lambda: |-
               return id(display_page) == 1 && id(operation_mode).current_option() == "temperature";
           then:
             - display.page.show: settings_temperature
@@ -378,6 +384,33 @@ sensor:
               call.perform();
               return;
             };
+            if (id(operation_mode).current_option() == "humidity") {
+              switch (id(selected_setting)) {
+                case 0: {  // no setting selected
+                  auto call = id(window).make_call();
+                  call.set_command_open();  // override actual position
+                  call.perform();
+                  return;
+                }
+                // case 1 is mode selection, which is handled above
+                case 2:
+                  id(target_humidity).publish_state(id(target_humidity).state + 1.0);
+                  break;
+                case 3:
+                  id(humidity_hysteresis).publish_state(id(humidity_hysteresis).state + 0.5);
+                  break;
+                case 4:
+                  id(target_temperature).publish_state(id(target_temperature).state + 0.5);
+                  break;
+                case 5:
+                  id(temperature_hysteresis).publish_state(id(temperature_hysteresis).state + 0.2);
+                  break;
+                case 6:
+                  id(minimum_time).publish_state(id(minimum_time).state + 1);
+                  break;
+              };
+              return;
+            };
             if (id(operation_mode).current_option() == "temperature") {
               switch (id(selected_setting)) {
                 case 0: {  // no setting selected
@@ -415,6 +448,33 @@ sensor:
               call.select_previous(true);
               call.perform();
               return;
+            };
+            if (id(operation_mode).current_option() == "humidity") {
+              switch (id(selected_setting)) {
+                case 0: {  // no setting selected
+                  auto call = id(window).make_call();
+                  call.set_command_close();  // override actual position
+                  call.perform();
+                  return;
+                }
+                // case 1 is mode selection, which is handled above
+                case 2:
+                  id(target_humidity).publish_state(id(target_humidity).state - 1.0);
+                  break;
+                case 3:
+                  id(humidity_hysteresis).publish_state(id(humidity_hysteresis).state - 0.5);
+                  break;
+                case 4:
+                  id(target_temperature).publish_state(id(target_temperature).state - 0.5);
+                  break;
+                case 5:
+                  id(temperature_hysteresis).publish_state(id(temperature_hysteresis).state - 0.2);
+                  break;
+                case 6:
+                  id(minimum_time).publish_state(id(minimum_time).state - 1);
+                  break;
+                };
+                return;
             };
             if (id(operation_mode).current_option() == "temperature") {
               switch (id(selected_setting)) {
@@ -654,6 +714,66 @@ display:
           } else if (id(operation_mode).current_option() == "manual") {
               it.printf(80, 44, id(font_text), "%.0f %%",
                         id(window).position*100);
+          }
+
+      - id: settings_humidity
+        lambda: |-
+          // Line 1 - Mode settings
+          const char *mode_icon = "\U000F17C6";  // mdi:water-sync
+          it.printf(0, 0, id(font_text), "Mode:");
+          if (id(selected_setting) == 1) {  // mode
+            it.filled_rectangle(45, 0, 23, 16);
+            it.printf(48, 0, id(font_icons), Color::BLACK, "%s", mode_icon);
+          } else {
+            it.printf(48, 0, id(font_icons), "%s", mode_icon);
+          }
+          // Line 2 - humidity settings
+          it.printf(0, 16, id(font_icons), "\U000F1504");  // mdi:water-check
+          if (id(selected_setting) == 2) {  // target_humidity
+            it.filled_rectangle(20, 16, 34, 16);
+            it.printf(22, 16, id(font_text), Color::BLACK, "%.1f",
+                      id(target_humidity).state);
+          } else {
+            it.printf(22, 16, id(font_text), "%.1f",
+                      id(target_humidity).state);
+          }
+          it.printf(56, 16, id(font_text), "±");
+          if (id(selected_setting) == 3) {  // humidity_hysteresis
+            it.filled_rectangle(66, 16, 24, 16);
+            it.printf(68, 16, id(font_text), Color::BLACK, "%.1f",
+                      id(humidity_hysteresis).state);
+          } else {
+            it.printf(68, 16, id(font_text), "%.1f",
+                      id(humidity_hysteresis).state);
+          }
+          // Line 3 - temperature settings
+          it.printf(2, 32, id(font_icons), "\U000F1A7F");  // mdi:thermometer-check
+          if (id(selected_setting) == 4) {  // target_temperature
+            it.filled_rectangle(20, 32, 34, 16);
+            it.printf(22, 32, id(font_text), Color::BLACK, "%.1f",
+                      id(target_temperature).state);
+          } else {
+            it.printf(22, 32, id(font_text), "%.1f",
+                      id(target_temperature).state);
+          }
+          it.printf(56, 32, id(font_text), "±");
+          if (id(selected_setting) == 5) {  // temperature_hysteresis
+            it.filled_rectangle(66, 32, 24, 16);
+            it.printf(68, 32, id(font_text), Color::BLACK, "%.1f",
+                      id(temperature_hysteresis).state);
+          } else {
+            it.printf(68, 32, id(font_text), "%.1f",
+                      id(temperature_hysteresis).state);
+          }
+          // Line 4 - minimum time settings
+          it.printf(0, 48, id(font_icons), "\U000F13AB");  // mdi:timer
+          if (id(selected_setting) == 6) {  // minimum_time
+            it.filled_rectangle(20, 48, 50, 16);
+            it.printf(22, 48, id(font_text), Color::BLACK, "%.0f  min",
+                      id(minimum_time).state);
+          } else {
+            it.printf(22, 48, id(font_text), "%.0f  min",
+                      id(minimum_time).state);
           }
 
       - id: settings_temperature
