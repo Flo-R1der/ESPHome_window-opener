@@ -141,6 +141,15 @@ globals:
     type: uint8_t
     restore_value: no
     initial_value: '0'
+      #   | MODE: humidity         | MODE: temperature      | MODE: time-based       | MODE: manual           |
+      # 0 | no setting selected    | no setting selected    | no setting selected    | no setting selected    |
+      # 1 | operation_mode         | operation_mode         | operation_mode         | operation_mode         |
+      # 2 | target_humidity        | target_temperature     | open time              | BACK                   |
+      # 3 | humidity_hysteresis    | temperature_hysteresis | close time             |
+      # 4 | target_humidity        | BACK                   |
+      # 5 | target_temperature     | humidity_hysteresis    |
+      # 6 | temperature_hysteresis | minimum_time           |
+      # 7 | BACK                   |
   - id: last_user_input
     type: uint32_t
     restore_value: no
@@ -215,6 +224,19 @@ binary_sensor:
               id(selected_setting)++;
             }
         - script.execute: display_updater
+        - if:
+            condition:
+              lambda: |-
+                return id(operation_mode).current_option() == "humidity" && id(selected_setting) > 6 ||
+                id(operation_mode).current_option() == "temperature" && id(selected_setting) > 6 ||
+                id(operation_mode).current_option() == "time-based" && id(selected_setting) > 3 ||
+                id(operation_mode).current_option() == "manual" && id(selected_setting) > 1;
+            then:
+              - lambda: |-
+                  id(display_page) = 0;
+                  id(selected_setting) = 0;
+              - display.page.show: status_page
+              - component.update: my_display
 
   - platform: template
     id: window_request
@@ -349,61 +371,77 @@ sensor:
     on_clockwise:
       then:
         - lambda: |-
-            if (id(selected_setting) == 0) {  // no setting selected
-              auto call = id(window).make_call();
-              call.set_command_open();  // override actual position
+            id(last_user_input) = millis();
+            if (id(selected_setting) == 1) {  // special handling to prevent multiple execution
+              auto call = id(operation_mode).make_call();
+              call.select_next(true);
               call.perform();
               return;
-            }
-            id(last_user_input) = millis();
-            switch (id(selected_setting)) {
-              case 1:
-                break;  // will be mode selection later
-              case 2:
-                id(target_temperature).publish_state(id(target_temperature).state + 0.5);
-                break;
-              case 3:
-                id(temperature_hysteresis).publish_state(id(temperature_hysteresis).state + 0.2);
-                break;
-              case 4:
-                id(target_humidity).publish_state(id(target_humidity).state + 1.0);
-                break;
-              case 5:
-                id(humidity_hysteresis).publish_state(id(humidity_hysteresis).state + 0.2);
-                break;
-              case 6:
-                id(minimum_time).publish_state(id(minimum_time).state + 1);
-                break;
+            };
+            if (id(operation_mode).current_option() == "temperature") {
+              switch (id(selected_setting)) {
+                case 0: {  // no setting selected
+                  auto call = id(window).make_call();
+                  call.set_command_open();  // override actual position
+                  call.perform();
+                  return;
+                }
+                // case 1 is mode selection, which is handled above
+                case 2:
+                  id(target_temperature).publish_state(id(target_temperature).state + 0.5);
+                  break;
+                case 3:
+                  id(temperature_hysteresis).publish_state(id(temperature_hysteresis).state + 0.2);
+                  break;
+                case 4:
+                  id(target_humidity).publish_state(id(target_humidity).state + 1.0);
+                  break;
+                case 5:
+                  id(humidity_hysteresis).publish_state(id(humidity_hysteresis).state + 0.5);
+                  break;
+                case 6:
+                  id(minimum_time).publish_state(id(minimum_time).state + 1);
+                  break;
+              };
+              return;
             }
         - script.execute: display_updater
     on_anticlockwise:
       then:
         - lambda: |-
             id(last_user_input) = millis();
-            if (id(selected_setting) == 0) {  // no setting selected
-              auto call = id(window).make_call();
-              call.set_command_close();  // override actual position
+            if (id(selected_setting) == 1) {  // special handling to prevent multiple execution
+              auto call = id(operation_mode).make_call();
+              call.select_previous(true);
               call.perform();
               return;
-            }
-            switch (id(selected_setting)) {
-              case 1:
-                break;  // will be mode selection later
-              case 2:
-                id(target_temperature).publish_state(id(target_temperature).state - 0.5);
-                break;
-              case 3:
-                id(temperature_hysteresis).publish_state(id(temperature_hysteresis).state - 0.2);
-                break;
-              case 4:
-                id(target_humidity).publish_state(id(target_humidity).state - 1.0);
-                break;
-              case 5:
-                id(humidity_hysteresis).publish_state(id(humidity_hysteresis).state - 0.2);
-                break;
-              case 6:
-                id(minimum_time).publish_state(id(minimum_time).state - 1);
-                break;
+            };
+            if (id(operation_mode).current_option() == "temperature") {
+              switch (id(selected_setting)) {
+                case 0: {  // no setting selected
+                  auto call = id(window).make_call();
+                  call.set_command_close();  // override actual position
+                  call.perform();
+                  return;
+                }
+                // case 1 is mode selection, which is handled above
+                case 2:
+                  id(target_temperature).publish_state(id(target_temperature).state - 0.5);
+                  break;
+                case 3:
+                  id(temperature_hysteresis).publish_state(id(temperature_hysteresis).state - 0.2);
+                  break;
+                case 4:
+                  id(target_humidity).publish_state(id(target_humidity).state - 1.0);
+                  break;
+                case 5:
+                  id(humidity_hysteresis).publish_state(id(humidity_hysteresis).state - 0.5);
+                  break;
+                case 6:
+                  id(minimum_time).publish_state(id(minimum_time).state - 1);
+                  break;
+                };
+                return;
             }
         - script.execute: display_updater
 
