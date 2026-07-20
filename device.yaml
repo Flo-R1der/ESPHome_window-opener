@@ -135,6 +135,8 @@ globals:
     type: uint8_t
     restore_value: no
     initial_value: '0'
+      # 0 = status page
+      # 1 = settings page
   - id: selected_setting
     type: uint8_t
     restore_value: no
@@ -169,6 +171,21 @@ script:
             - cover.open: window
           else:
             - cover.close: window
+  - id: display_updater
+    mode: restart
+    then:
+      - if:
+          condition:
+            lambda: 'return id(display_page) == 0;'
+          then:
+            - display.page.show: status_page
+      - if:
+          condition:
+            lambda: |-
+              return id(display_page) == 1 && id(operation_mode).current_option() == "temperature";
+          then:
+            - display.page.show: settings_temperature
+      - component.update: my_display
 
 
 binary_sensor:
@@ -194,13 +211,10 @@ binary_sensor:
             if (id(display_page) == 0) {
               id(display_page) = 1;
               id(selected_setting) = 1;
-              return;
+            } else {
+              id(selected_setting)++;
             }
-            id(selected_setting)++;
-            if (id(selected_setting) > 6) {
-              id(display_page) = 0;
-              id(selected_setting) = 0;
-            }
+        - script.execute: display_updater
 
   - platform: template
     id: window_request
@@ -361,6 +375,7 @@ sensor:
                 id(minimum_time).publish_state(id(minimum_time).state + 1);
                 break;
             }
+        - script.execute: display_updater
     on_anticlockwise:
       then:
         - lambda: |-
@@ -390,6 +405,7 @@ sensor:
                 id(minimum_time).publish_state(id(minimum_time).state - 1);
                 break;
             }
+        - script.execute: display_updater
 
   - platform: template
     id: inside_temperature_state
@@ -509,19 +525,25 @@ font:
       - "\U000F0F9B" # mdi:home-export-outline
       - "\U000F1A7F" # mdi:thermometer-check
       - "\U000F1504" # mdi:water-check
-      - "\U000F0954" # mdi:clock
-      - "\U000F18F2" # mdi:refresh-auto
+      - "\U000F13AB" # mdi:timer
+      - "\U000F17C6" # mdi:water-sync / mode: humidity
+      - "\U000F1B0F" # mdi:thermometer-auto / mode: temperature
+      - "\U000F0954" # mdi:clock / mode: time-based
+      - "\U000F0B14" # mdi:alpha-m-box / mode: manual
   - file: "fonts/materialdesignicons-webfont.ttf"
     id: big_icons
-    size: 24
+    size: 26
     glyphs:  # IMPORTANT: Codepoints are from MDI version 7.4.47
       - "\U000F0E04" # mdi:thermometer-minus
       - "\U000F0E05" # mdi:thermometer-plus
       - "\U000F1A7F" # mdi:thermometer-check
+      - "\U000F1B0F" # mdi:thermometer-auto / mode: temperature
       - "\U000F1506" # mdi:water-minus
       - "\U000F150A" # mdi:water-plus
       - "\U000F1504" # mdi:water-check
-      - "\U000F18F2" # mdi:refresh-auto
+      - "\U000F17C6" # mdi:water-sync / mode: humidity
+      - "\U000F0954" # mdi:clock / mode: time-based
+      - "\U000F0B14" # mdi:alpha-m-box / mode: manual
 
 display:
   - platform: ssd1306_i2c
@@ -529,116 +551,133 @@ display:
     i2c_id: i2c_inside
     address: 0x3C
     update_interval: 1s
+    id: my_display
 
-    lambda: |-
-      // mode icon (used on multiple pages)
-      const char *mode_icon = "\U000F18F2";  // mdi:refresh-auto
+    pages:
+      - id: status_page
+        lambda: |-
+          // Line 1 - inside measurements
+          it.printf(0, 0, id(font_icons), "\U000F0F9C");   // mdi:home-import-outline
+          it.printf(22, 0, id(font_text), "%.1f°C / %.1f%%",
+                    id(inside_temperature).state,
+                    id(inside_humidity).state);
+          // Line 2 - outside measurements
+          it.printf(0, 16, id(font_icons), "\U000F0F9B");   // mdi:home-export-outline
+          it.printf(22, 16, id(font_text), "%.1f°C / %.1f%%",
+                    id(outside_temperature).state,
+                    id(outside_humidity).state);
+          // Line 3 - mode and status
+          const char *mode_icon = "?";  // theoretical not possible
+          if (id(operation_mode).current_option() ==  "humidity") {
+            mode_icon = "\U000F17C6";  // mdi:water-sync
+          } else if (id(operation_mode).current_option() ==  "temperature") {
+            mode_icon = "\U000F1B0F";  // mdi:thermometer-auto
+          } else if (id(operation_mode).current_option() == "time-based") {
+              mode_icon = "\U000F0954";  // mdi:clock
+          } else if (id(operation_mode).current_option() == "manual") {
+              mode_icon = "\U000F0B14";  // mdi:alpha-m-box
+          }
+          it.printf(0, 44, id(font_text), "Mode:");
+          it.printf(40, 40, id(big_icons), "%s", mode_icon);
+          it.line(0, 36, 128, 36);
+          it.line(68, 36, 68, 64);
+          const char *temp_icon;
+          switch ((int) id(inside_temperature_state).state) {
+            case -1:
+              temp_icon = "\U000F0E04";   // mdi:thermometer-minus
+              break;
+            case 1:
+              temp_icon = "\U000F0E05";   // mdi:thermometer-plus
+              break;
+            default:
+              temp_icon = "\U000F1A7F";   // mdi:thermometer-check
+              break;
+          }
+          const char *humid_icon;
+          switch ((int) id(inside_humidity_state).state) {
+            case -1:
+              humid_icon = "\U000F1506";  // mdi:water-minus
+              break;
+            case 1:
+              humid_icon = "\U000F150A";  // mdi:water-plus
+              break;
+            default:
+              humid_icon = "\U000F1504";  // mdi:water-check
+              break;
+          }
+          if (id(operation_mode).current_option() ==  "humidity") {
+            it.printf(72, 40, id(big_icons), "%s", humid_icon);
+            it.printf(100, 40, id(big_icons), "%s", temp_icon);
+          } else if (id(operation_mode).current_option() ==  "temperature") {
+            it.printf(76, 40, id(big_icons), "%s", temp_icon);
+            it.printf(100, 40, id(big_icons), "%s", humid_icon);
+          } else if (id(operation_mode).current_option() == "time-based") {
+              // TODO: more to come
+          } else if (id(operation_mode).current_option() == "manual") {
+              it.printf(80, 44, id(font_text), "%.0f %%",
+                        id(window).position*100);
+          }
 
-      if (id(display_page) == 0) {
-        // display_page == 0: display the current STATUS page
-        // Line 1 - inside
-        it.printf(0, 0, id(font_icons), "\U000F0F9C");   // mdi:home-import-outline
-        it.printf(22, 0, id(font_text), "%.1f°C / %.1f%%",
-                  id(inside_temperature).state,
-                  id(inside_humidity).state);
-        // Line 2 - outside
-        it.printf(0, 16, id(font_icons), "\U000F0F9B");   // mdi:home-export-outline
-        it.printf(22, 16, id(font_text), "%.1f°C / %.1f%%",
-                  id(outside_temperature).state,
-                  id(outside_humidity).state);
-        // Line 3 - status
-        it.printf(0, 44, id(font_text), "Mode:");
-        it.printf(40, 40, id(big_icons), "%s", mode_icon);
-        it.line(0, 36, 128, 36);
-        it.line(68, 36, 68, 64);
-        const char *temp_icon;
-        switch ((int) id(inside_temperature_state).state) {
-          case -1:
-            temp_icon = "\U000F0E04";   // mdi:thermometer-minus
-            break;
-          case 1:
-            temp_icon = "\U000F0E05";   // mdi:thermometer-plus
-            break;
-          default:
-            temp_icon = "\U000F1A7F";   // mdi:thermometer-check
-            break;
-        }
-        const char *humid_icon;
-        switch ((int) id(inside_humidity_state).state) {
-          case -1:
-            humid_icon = "\U000F1506";  // mdi:water-minus
-            break;
-          case 1:
-            humid_icon = "\U000F150A";  // mdi:water-plus
-            break;
-          default:
-            humid_icon = "\U000F1504";  // mdi:water-check
-            break;
-        }
-        it.printf(76, 40, id(big_icons), "%s", temp_icon);
-        it.printf(100, 40, id(big_icons), "%s", humid_icon);
+      - id: settings_temperature
+        lambda: |-
+          // Line 1 - Mode settings
+          const char *mode_icon = "\U000F1B0F";  // mdi:thermometer-auto
+          it.printf(0, 0, id(font_text), "Mode:");
+          if (id(selected_setting) == 1) {  // mode
+            it.filled_rectangle(45, 0, 23, 16);
+            it.printf(48, 0, id(font_icons), Color::BLACK, "%s", mode_icon);
+          } else {
+            it.printf(48, 0, id(font_icons), "%s", mode_icon);
+          }
+          // Line 2 - temperature settings
+          it.printf(2, 16, id(font_icons), "\U000F1A7F");  // mdi:thermometer-check
+          if (id(selected_setting) == 2) {  // target_temperature
+            it.filled_rectangle(20, 16, 34, 16);
+            it.printf(22, 16, id(font_text), Color::BLACK, "%.1f",
+                      id(target_temperature).state);
+          } else {
+            it.printf(22, 16, id(font_text), "%.1f",
+                      id(target_temperature).state);
+          }
+          it.printf(56, 16, id(font_text), "±");
+          if (id(selected_setting) == 3) {  // temperature_hysteresis
+            it.filled_rectangle(66, 16, 24, 16);
+            it.printf(68, 16, id(font_text), Color::BLACK, "%.1f",
+                      id(temperature_hysteresis).state);
+          } else {
+            it.printf(68, 16, id(font_text), "%.1f",
+                      id(temperature_hysteresis).state);
+          }
+          // Line 3 - humidity settings
+          it.printf(0, 32, id(font_icons), "\U000F1504");  // mdi:water-check
+          if (id(selected_setting) == 4) {  // target_humidity
+            it.filled_rectangle(20, 32, 34, 16);
+            it.printf(22, 32, id(font_text), Color::BLACK, "%.1f",
+                      id(target_humidity).state);
+          } else {
+            it.printf(22, 32, id(font_text), "%.1f",
+                      id(target_humidity).state);
+          }
+          it.printf(56, 32, id(font_text), "±");
+          if (id(selected_setting) == 5) {  // humidity_hysteresis
+            it.filled_rectangle(66, 32, 24, 16);
+            it.printf(68, 32, id(font_text), Color::BLACK, "%.1f",
+                      id(humidity_hysteresis).state);
+          } else {
+            it.printf(68, 32, id(font_text), "%.1f",
+                      id(humidity_hysteresis).state);
+          }
+          // Line 4 - minimum time settings
+          it.printf(0, 48, id(font_icons), "\U000F13AB");  // mdi:timer
+          if (id(selected_setting) == 6) {  // minimum_time
+            it.filled_rectangle(20, 48, 50, 16);
+            it.printf(22, 48, id(font_text), Color::BLACK, "%.0f  min",
+                      id(minimum_time).state);
+          } else {
+            it.printf(22, 48, id(font_text), "%.0f  min",
+                      id(minimum_time).state);
+          }
       
-      } else if (id(display_page) == 1) {
-      
-        // display_page == 1: display the SETTINGS page
-        // Line 1 - Mode settings
-        it.printf(0, 0, id(font_text), "Mode:");
-        if (id(selected_setting) == 1) {  // mode
-          it.filled_rectangle(46, 0, 22, 16);
-          it.printf(48, 0, id(font_icons), Color::BLACK, "%s", mode_icon);
-        } else {
-          it.printf(48, 0, id(font_icons), "%s", mode_icon);
-        }
-        // Line 2 - temperature settings
-        it.printf(2, 16, id(font_icons), "\U000F1A7F");  // mdi:thermometer-check
-        if (id(selected_setting) == 2) {  // target_temperature
-          it.filled_rectangle(20, 16, 34, 16);
-          it.printf(22, 16, id(font_text), Color::BLACK, "%.1f",
-                    id(target_temperature).state);
-        } else {
-          it.printf(22, 16, id(font_text), "%.1f",
-                    id(target_temperature).state);
-        }
-        it.printf(56, 16, id(font_text), "±");
-        if (id(selected_setting) == 3) {  // temperature_hysteresis
-          it.filled_rectangle(66, 16, 24, 16);
-          it.printf(68, 16, id(font_text), Color::BLACK, "%.1f",
-                    id(temperature_hysteresis).state);
-        } else {
-          it.printf(68, 16, id(font_text), "%.1f",
-                    id(temperature_hysteresis).state);
-        }
-        // Line 3 - humidity settings
-        it.printf(0, 32, id(font_icons), "\U000F1504");  // mdi:water-check
-        if (id(selected_setting) == 4) {  // target_humidity
-          it.filled_rectangle(20, 32, 34, 16);
-          it.printf(22, 32, id(font_text), Color::BLACK, "%.1f",
-                    id(target_humidity).state);
-        } else {
-          it.printf(22, 32, id(font_text), "%.1f",
-                    id(target_humidity).state);
-        }
-        it.printf(56, 32, id(font_text), "±");
-        if (id(selected_setting) == 5) {  // humidity_hysteresis
-          it.filled_rectangle(66, 32, 24, 16);
-          it.printf(68, 32, id(font_text), Color::BLACK, "%.1f",
-                    id(humidity_hysteresis).state);
-        } else {
-          it.printf(68, 32, id(font_text), "%.1f",
-                    id(humidity_hysteresis).state);
-        }
-        // Line 4 - minimum time settings
-        it.printf(0, 48, id(font_icons), "\U000F0954");  // mdi:clock
-        if (id(selected_setting) == 6) {  // minimum_time
-          it.filled_rectangle(20, 48, 50, 16);
-          it.printf(22, 48, id(font_text), Color::BLACK, "%.0f  min",
-                    id(minimum_time).state);
-        } else {
-          it.printf(22, 48, id(font_text), "%.0f  min",
-                    id(minimum_time).state);
-        }
-
-      }
 
 
 # Reset the Display to the status page after 10 seconds of inactivity on the settings page
