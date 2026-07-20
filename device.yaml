@@ -154,6 +154,11 @@ globals:
     type: uint32_t
     restore_value: no
     initial_value: '0'
+  - id: manual_position
+    type: uint8_t
+    restore_value: true
+    initial_value: '100'
+    # for opening % in manual mode
 
 script:
   - id: process_window_request
@@ -200,6 +205,12 @@ script:
               return id(display_page) == 1 && id(operation_mode).current_option() == "temperature";
           then:
             - display.page.show: settings_temperature
+      - if:
+          condition:
+            lambda: |-
+              return id(display_page) == 1 && id(operation_mode).current_option() == "manual";
+          then:
+            - display.page.show: settings_manual
       - component.update: my_display
 
 
@@ -408,7 +419,7 @@ sensor:
                 case 6:
                   id(minimum_time).publish_state(id(minimum_time).state + 1);
                   break;
-              };
+                };
               return;
             };
             if (id(operation_mode).current_option() == "temperature") {
@@ -435,8 +446,17 @@ sensor:
                 case 6:
                   id(minimum_time).publish_state(id(minimum_time).state + 1);
                   break;
-              };
+                };
               return;
+            };
+            if (id(operation_mode).current_option() == "manual") {
+              id(manual_position) = min(id(manual_position) + 10, 100);
+              auto call = id(window).make_call();
+              call.set_position(id(manual_position) / 100.0f);
+              call.perform();
+              ESP_LOGD("Position", "Set to %i", id(manual_position));
+              return;
+              // no switch case for settings in manual mode
             }
         - script.execute: display_updater
     on_anticlockwise:
@@ -474,7 +494,7 @@ sensor:
                   id(minimum_time).publish_state(id(minimum_time).state - 1);
                   break;
                 };
-                return;
+              return;
             };
             if (id(operation_mode).current_option() == "temperature") {
               switch (id(selected_setting)) {
@@ -501,7 +521,16 @@ sensor:
                   id(minimum_time).publish_state(id(minimum_time).state - 1);
                   break;
                 };
-                return;
+              return;
+            };
+            if (id(operation_mode).current_option() == "manual") {
+              id(manual_position) = max(id(manual_position) - 10, 0);
+              auto call = id(window).make_call();
+              call.set_position(id(manual_position) / 100.0f);
+              call.perform();
+              ESP_LOGD("Position", "Set to %i", id(manual_position));
+              return;
+              // no switch case for settings in manual mode
             }
         - script.execute: display_updater
 
@@ -842,10 +871,15 @@ display:
 interval:
   - interval: 1s
     then:
-      - lambda: |-
-          if (id(display_page) == 1 &&
-              millis() - id(last_user_input) > 10000) {
-            id(display_page) = 0;
-            id(selected_setting) = 0;
-          }
+      - if:
+          condition:
+            lambda: |-
+              return id(display_page) == 1 &&
+              millis() - id(last_user_input) > 10000;
+          then:
+            - lambda: |-
+                id(display_page) = 0;
+                id(selected_setting) = 0;
+            - display.page.show: status_page
+            - component.update: my_display
 
