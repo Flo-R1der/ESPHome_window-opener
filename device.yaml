@@ -107,6 +107,19 @@ number:
     unit_of_measurement: "min"
     mode: slider
 
+select:
+  - platform: template
+    id: operation_mode
+    name: "Operation Mode"
+    optimistic: true
+    restore_value: true
+    options:
+      - humidity
+      - temperature
+      - time-based
+      - manual
+    initial_option: humidity
+
 globals:
   # variables for minimum open/close time between actions
   - id: last_motion
@@ -193,17 +206,34 @@ binary_sensor:
     id: window_request
     name: "Fenster öffnen?"
     lambda: |-
-      // Temperature Control
-      if (id(inside_temperature_state).state > 0)  // Too warm inside
-        return id(outside_temperature_relation).state <= 0; 
-      if (id(inside_temperature_state).state < 0)  // Too cold inside
-        return id(outside_temperature_relation).state >= 0;
-      // Temperature OK -> Humidity Control
-      if (id(inside_humidity_state).state > 0)  // Too humid inside
-        return id(outside_humidity_relation).state <= 0;
-      if (id(inside_humidity_state).state < 0)  // Too dry inside
-        return id(outside_humidity_relation).state >= 0;
-      // Keep window closed
+      if (id(operation_mode).current_option() == "humidity") {
+        // Humidity Control
+        if (id(inside_humidity_state).state > 0)  // Too humid inside
+          return id(outside_humidity_relation).state <= 0;
+        if (id(inside_humidity_state).state < 0)  // Too dry inside
+          return id(outside_humidity_relation).state >= 0;
+        // Humidity OK -> Temperature Control
+        if (id(inside_temperature_state).state > 0)  // Too warm inside
+          return id(outside_temperature_relation).state <= 0; 
+        if (id(inside_temperature_state).state < 0)  // Too cold inside
+          return id(outside_temperature_relation).state >= 0;
+        // Keep window closed
+        return false;
+      };
+      if (id(operation_mode).current_option() == "temperature") {
+        // Temperature Control
+        if (id(inside_temperature_state).state > 0)  // Too warm inside
+          return id(outside_temperature_relation).state <= 0; 
+        if (id(inside_temperature_state).state < 0)  // Too cold inside
+          return id(outside_temperature_relation).state >= 0;
+        // Temperature OK -> Humidity Control
+        if (id(inside_humidity_state).state > 0)  // Too humid inside
+          return id(outside_humidity_relation).state <= 0;
+        if (id(inside_humidity_state).state < 0)  // Too dry inside
+          return id(outside_humidity_relation).state >= 0;
+        // Keep window closed
+        return false;
+      }
       return false;
     on_press:
       - script.execute: process_window_request
@@ -211,11 +241,18 @@ binary_sensor:
       - script.execute: process_window_request
 
   - platform: template
-    id: dehumidify_request
-    name: "Luftentfeuchtung erforderlich"
+    id: humidity_high
+    name: "Luftfeuchte überschritten"
     lambda: |-
-      return id(inside_humidity_state).state > 0 &&
-             !id(window_request).state;
+      return id(inside_humidity_state).state > 0;
+    device_class: problem
+
+  - platform: template
+    id: temperature_high
+    name: "Temperatur überschritten"
+    lambda: |-
+      return id(inside_temperature_state).state > 0;
+    device_class: problem
 
 
 i2c:
