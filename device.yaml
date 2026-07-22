@@ -753,6 +753,9 @@ cover:
       - switch.turn_off: relay_open
       - switch.turn_off: relay_close
 
+    on_idle:
+      - lambda: 'id(manual_position) = id(window).position * 100;'
+
 
 font:
   - file: "gfonts://Roboto"
@@ -776,7 +779,7 @@ font:
       - "\U000F17C6" # mdi:water-sync / mode: humidity
       - "\U000F1B0F" # mdi:thermometer-auto / mode: temperature
       - "\U000F0954" # mdi:clock / mode: scheduled
-      - "\U000F0B14" # mdi:alpha-m-box / mode: manual
+      - "\U000F0741" # mdi:gesture-tap / mode: manual
   - file: "fonts/materialdesignicons-webfont.ttf"
     id: big_icons
     size: 26
@@ -790,7 +793,7 @@ font:
       - "\U000F1504" # mdi:water-check
       - "\U000F17C6" # mdi:water-sync / mode: humidity
       - "\U000F0954" # mdi:clock / mode: scheduled
-      - "\U000F0B14" # mdi:alpha-m-box / mode: manual
+      - "\U000F0741" # mdi:gesture-tap / mode: manual
 
 display:
   - platform: ssd1306_i2c
@@ -822,10 +825,10 @@ display:
           } else if (id(operation_mode).current_option() == "scheduled") {
               mode_icon = "\U000F0954";  // mdi:clock
           } else if (id(operation_mode).current_option() == "manual") {
-              mode_icon = "\U000F0B14";  // mdi:alpha-m-box
+              mode_icon = "\U000F0741";  // mdi:gesture-tap
           }
           it.printf(0, 44, id(font_text), "Mode:");
-          it.printf(40, 40, id(big_icons), "%s", mode_icon);
+          it.printf(38, 39, id(big_icons), "%s", mode_icon);
           it.line(0, 36, 128, 36);
           it.line(68, 36, 68, 64);
           const char *temp_icon;
@@ -1055,6 +1058,15 @@ display:
             it.printf(52, 32, id(font_text), "%02d",
                       id(close_time).minute);
           }
+
+      - id: settings_manual
+        lambda: |-
+          // Line 1 - Mode settings
+          const char *mode_icon = "\U000F0741";  // mdi:gesture-tap
+          it.printf(0, 0, id(font_text), "Mode:");
+          it.filled_rectangle(45, 0, 23, 16);
+          it.printf(48, 0, id(font_icons), Color::BLACK, "%s", mode_icon);
+          // that's all
 
 
 # Reset the Display to the status page after 10 seconds of inactivity on the settings page
