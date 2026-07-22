@@ -167,15 +167,15 @@ globals:
     type: uint8_t
     restore_value: no
     initial_value: '0'
-      #   | MODE: humidity         | MODE: temperature      | MODE: scheduled        | MODE: manual           |
-      # 0 | no setting selected    | no setting selected    | no setting selected    | no setting selected    |
-      # 1 | operation_mode         | operation_mode         | operation_mode         | operation_mode         |
-      # 2 | target_humidity        | target_temperature     | open time              | BACK                   |
-      # 3 | humidity_hysteresis    | temperature_hysteresis | close time             |
-      # 4 | target_humidity        | BACK                   |
-      # 5 | target_temperature     | humidity_hysteresis    |
-      # 6 | temperature_hysteresis | minimum_time           |
-      # 7 | BACK                   |
+      #   | MODE: humidity         | MODE: temperature      | MODE: scheduled    | MODE: manual   |
+      # 0 | - nothing -            | - nothing -            | - nothing -        | - nothing -    |
+      # 1 | operation_mode         | operation_mode         | operation_mode     | operation_mode |
+      # 2 | target_humidity        | target_temperature     | open time HOURS    | BACK           |
+      # 3 | humidity_hysteresis    | temperature_hysteresis | open time MINUTES  |
+      # 4 | target_temperature     | target_humidity        | close time HOURS   |
+      # 5 | temperature_hysteresis | humidity_hysteresis    | close time MINUTES |
+      # 6 | minimum_time           | minimum_time           | BACK
+      # 7 | BACK                   | BACK
   - id: last_user_input
     type: uint32_t
     restore_value: no
@@ -236,7 +236,7 @@ script:
             lambda: |-
               return id(display_page) == 1 && id(operation_mode).current_option() == "scheduled";
           then:
-            - display.page.show: settings_time
+            - display.page.show: settings_schedule
       - if:
           condition:
             lambda: |-
@@ -276,10 +276,10 @@ binary_sensor:
         - if:
             condition:
               lambda: |-
-                return id(operation_mode).current_option() == "humidity" && id(selected_setting) > 6 ||
-                id(operation_mode).current_option() == "temperature" && id(selected_setting) > 6 ||
-                id(operation_mode).current_option() == "scheduled" && id(selected_setting) > 3 ||
-                id(operation_mode).current_option() == "manual" && id(selected_setting) > 1;
+                return (id(operation_mode).current_option() == "humidity" && id(selected_setting) > 6) ||
+                (id(operation_mode).current_option() == "temperature" && id(selected_setting) > 6) ||
+                (id(operation_mode).current_option() == "scheduled" && id(selected_setting) > 5) ||
+                (id(operation_mode).current_option() == "manual" && id(selected_setting) > 1);
             then:
               - lambda: |-
                   id(display_page) = 0;
@@ -493,6 +493,43 @@ sensor:
                 };
               return;
             };
+            if (id(operation_mode).current_option() == "scheduled") {
+              int open_minutes = id(open_time).hour * 60 + id(open_time).minute;
+              int close_minutes = id(close_time).hour * 60 + id(close_time).minute;
+              switch (id(selected_setting)) {
+                case 0: {  // no setting selected
+                  auto call = id(window).make_call();
+                  call.set_command_open();  // override actual position
+                  call.perform();
+                  return; }
+                // case 1 is mode selection, which is handled above
+                case 2: {   // Open time: +1 h
+                  open_minutes = (open_minutes + 60) % (24 * 60);
+                  auto call = id(open_time).make_call();
+                  call.set_time(open_minutes / 60, open_minutes % 60, 0);
+                  call.perform();
+                  break; }
+                case 3: {   // Open time: +5 min
+                  open_minutes = (open_minutes + 5) % (24 * 60);
+                  auto call = id(open_time).make_call();
+                  call.set_time(open_minutes / 60, open_minutes % 60, 0);
+                  call.perform();
+                  break; }
+                case 4: {   // Close time: +1 h
+                  close_minutes = (close_minutes + 60) % (24 * 60);
+                  auto call = id(close_time).make_call();
+                  call.set_time(close_minutes / 60, close_minutes % 60, 0);
+                  call.perform();
+                  break; }
+                case 5: {   // Close time: +5 min
+                  close_minutes = (close_minutes + 5) % (24 * 60);
+                  auto call = id(close_time).make_call();
+                  call.set_time(close_minutes / 60, close_minutes % 60, 0);
+                  call.perform();
+                  break; }
+                };
+              return;
+            };
             if (id(operation_mode).current_option() == "manual") {
               id(manual_position) = min(id(manual_position) + 10, 100);
               auto call = id(window).make_call();
@@ -564,6 +601,43 @@ sensor:
                 case 6:
                   id(minimum_time).publish_state(id(minimum_time).state - 1);
                   break;
+                };
+              return;
+            };
+            if (id(operation_mode).current_option() == "scheduled") {
+              int open_minutes = id(open_time).hour * 60 + id(open_time).minute;
+              int close_minutes = id(close_time).hour * 60 + id(close_time).minute;
+              switch (id(selected_setting)) {
+                case 0: {  // no setting selected
+                  auto call = id(window).make_call();
+                  call.set_command_open();  // override actual position
+                  call.perform();
+                  return; }
+                // case 1 is mode selection, which is handled above
+                case 2: {   // Open time: -1 h
+                  open_minutes = (open_minutes - 60) % (24 * 60);
+                  auto call = id(open_time).make_call();
+                  call.set_time(open_minutes / 60, open_minutes % 60, 0);
+                  call.perform();
+                  break; }
+                case 3: {   // Open time: -5 min
+                  open_minutes = (open_minutes - 5) % (24 * 60);
+                  auto call = id(open_time).make_call();
+                  call.set_time(open_minutes / 60, open_minutes % 60, 0);
+                  call.perform();
+                  break; }
+                case 4: {   // Close time: -1 h
+                  close_minutes = (close_minutes - 60) % (24 * 60);
+                  auto call = id(close_time).make_call();
+                  call.set_time(close_minutes / 60, close_minutes % 60, 0);
+                  call.perform();
+                  break; }
+                case 5: {   // Close time: -5 min
+                  close_minutes = (close_minutes - 5) % (24 * 60);
+                  auto call = id(close_time).make_call();
+                  call.set_time(close_minutes / 60, close_minutes % 60, 0);
+                  call.perform();
+                  break; }
                 };
               return;
             };
@@ -697,6 +771,8 @@ font:
       - "\U000F1A7F" # mdi:thermometer-check
       - "\U000F1504" # mdi:water-check
       - "\U000F13AB" # mdi:timer
+      - "\U000F11DC" # mdi:window-open-variant
+      - "\U000F11DB" # mdi:window-closed-variant
       - "\U000F17C6" # mdi:water-sync / mode: humidity
       - "\U000F1B0F" # mdi:thermometer-auto / mode: temperature
       - "\U000F0954" # mdi:clock / mode: scheduled
@@ -783,7 +859,28 @@ display:
             it.printf(76, 40, id(big_icons), "%s", temp_icon);
             it.printf(100, 40, id(big_icons), "%s", humid_icon);
           } else if (id(operation_mode).current_option() == "scheduled") {
-              // TODO: more to come
+            int now_seconds = id(sntp_time).now().hour * 3600 + id(sntp_time).now().minute * 60 + id(sntp_time).now().second;
+            int open_seconds = id(open_time).hour * 3600 + id(open_time).minute * 60 + id(open_time).second;
+            int close_seconds = id(close_time).hour * 3600 + id(close_time).minute * 60 + id(close_time).second;
+            int next_event;
+            if (open_seconds < close_seconds) {      // example: 08:00 -> 20:00
+              if (now_seconds < open_seconds)        // before opening (morning)
+                next_event = open_seconds;
+              else if (now_seconds < close_seconds)  // before closing (daytime)
+                next_event = close_seconds;
+              else
+                next_event = open_seconds + 24 * 3600;  // after closing => next event tomorrow (open)
+            } else {                                // example: 20:00 -> 08:00
+              if (now_seconds < close_seconds)      // before closing (morning)
+                next_event = close_seconds;
+              else if (now_seconds < open_seconds)  // before opening (daytime)
+                next_event = open_seconds;
+              else
+                next_event = close_seconds + 24 * 3600;  // after opening => next event tomorrow (close)
+            }
+            int remaining = next_event - now_seconds;
+            it.printf(72, 44, id(font_text), "%02d:%02d:%02d",
+                      remaining / 3600, (remaining % 3600) / 60, remaining % 60);
           } else if (id(operation_mode).current_option() == "manual") {
               it.printf(80, 44, id(font_text), "%.0f %%",
                         id(window).position*100);
@@ -909,6 +1006,55 @@ display:
                       id(minimum_time).state);
           }
       
+      - id: settings_schedule
+        lambda: |-
+          // Line 1 - Mode settings
+          const char *mode_icon = "\U000F0954";  // mdi:clock
+          it.printf(0, 0, id(font_text), "Mode:");
+          if (id(selected_setting) == 1) {  // mode
+            it.filled_rectangle(45, 0, 23, 16);
+            it.printf(48, 0, id(font_icons), Color::BLACK, "%s", mode_icon);
+          } else {
+            it.printf(48, 0, id(font_icons), "%s", mode_icon);
+          }
+          // Line 2 - open time
+          it.printf(0, 16, id(font_icons), "\U000F11DC");  // mdi:window-open-variant
+          if (id(selected_setting) == 2) {  // open time HOURS
+            it.filled_rectangle(22, 16, 22, 16);
+            it.printf(25, 16, id(font_text), Color::BLACK, "%02d",
+                      id(open_time).hour);
+          } else {
+            it.printf(25, 16, id(font_text), "%02d",
+                      id(open_time).hour);
+          }
+          it.printf(45, 16, id(font_text), ":");
+          if (id(selected_setting) == 3) {  // open time MINUTES
+            it.filled_rectangle(49, 16, 22, 16);
+            it.printf(52, 16, id(font_text), Color::BLACK, "%02d",
+                      id(open_time).minute);
+          } else {
+            it.printf(52, 16, id(font_text), "%02d",
+                      id(open_time).minute);
+          }
+          // Line 3 - close time
+          it.printf(0, 32, id(font_icons), "\U000F11DB");  // mdi:window-closed-variant
+          if (id(selected_setting) == 4) {  // close time HOURS
+            it.filled_rectangle(22, 32, 22, 16);
+            it.printf(25, 32, id(font_text), Color::BLACK, "%02d",
+                      id(close_time).hour);
+          } else {
+            it.printf(25, 32, id(font_text), "%02d",
+                      id(close_time).hour);
+          }
+          it.printf(45, 32, id(font_text), ":");
+          if (id(selected_setting) == 5) {  // close time MINUTES
+            it.filled_rectangle(49, 32, 22, 16);
+            it.printf(52, 32, id(font_text), Color::BLACK, "%02d",
+                      id(close_time).minute);
+          } else {
+            it.printf(52, 32, id(font_text), "%02d",
+                      id(close_time).minute);
+          }
 
 
 # Reset the Display to the status page after 10 seconds of inactivity on the settings page
