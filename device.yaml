@@ -12,6 +12,9 @@ esp32:
   board: esp32dev
   framework:
     type: esp-idf
+    advanced:
+      minimum_chip_revision: "3.1"
+      sram1_as_iram: true
 
 logger:
 
@@ -45,6 +48,7 @@ number:
   - platform: template
     id: target_temperature
     name: "Zieltemperatur"
+    icon: mdi:thermometer
     entity_category: config
     optimistic: true
     restore_value: true
@@ -58,6 +62,7 @@ number:
   - platform: template
     id: target_humidity
     name: "Zielluftfeuchtigkeit"
+    icon: mdi:water-percent
     entity_category: config
     optimistic: true
     restore_value: true
@@ -97,6 +102,7 @@ number:
   - platform: template
     id: minimum_time
     name: "Zeit zwischen Aktionen"
+    icon: mdi:timer
     entity_category: config
     optimistic: true
     restore_value: true
@@ -110,7 +116,7 @@ number:
 select:
   - platform: template
     id: operation_mode
-    name: "Operation Mode"
+    name: "Modus"
     optimistic: true
     restore_value: true
     options:
