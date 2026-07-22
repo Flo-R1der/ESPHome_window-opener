@@ -116,9 +116,35 @@ select:
     options:
       - humidity
       - temperature
-      - time-based
+      - scheduled
       - manual
     initial_option: humidity
+
+time:
+  - platform: sntp
+    id: sntp_time
+    timezone: Europe/Berlin
+
+datetime:
+  - platform: template
+    id: open_time
+    type: time
+    name: Öffnungs Zeit
+    entity_category: config
+    optimistic: yes
+    initial_value: "20:00:00"
+    restore_value: true
+    time_id: sntp_time
+
+  - platform: template
+    id: close_time
+    type: time
+    name: Schließen Zeit
+    entity_category: config
+    optimistic: yes
+    initial_value: "08:00:00"
+    restore_value: true
+    time_id: sntp_time
 
 globals:
   # variables for minimum open/close time between actions
@@ -141,7 +167,7 @@ globals:
     type: uint8_t
     restore_value: no
     initial_value: '0'
-      #   | MODE: humidity         | MODE: temperature      | MODE: time-based       | MODE: manual           |
+      #   | MODE: humidity         | MODE: temperature      | MODE: scheduled        | MODE: manual           |
       # 0 | no setting selected    | no setting selected    | no setting selected    | no setting selected    |
       # 1 | operation_mode         | operation_mode         | operation_mode         | operation_mode         |
       # 2 | target_humidity        | target_temperature     | open time              | BACK                   |
@@ -208,6 +234,12 @@ script:
       - if:
           condition:
             lambda: |-
+              return id(display_page) == 1 && id(operation_mode).current_option() == "scheduled";
+          then:
+            - display.page.show: settings_time
+      - if:
+          condition:
+            lambda: |-
               return id(display_page) == 1 && id(operation_mode).current_option() == "manual";
           then:
             - display.page.show: settings_manual
@@ -246,7 +278,7 @@ binary_sensor:
               lambda: |-
                 return id(operation_mode).current_option() == "humidity" && id(selected_setting) > 6 ||
                 id(operation_mode).current_option() == "temperature" && id(selected_setting) > 6 ||
-                id(operation_mode).current_option() == "time-based" && id(selected_setting) > 3 ||
+                id(operation_mode).current_option() == "scheduled" && id(selected_setting) > 3 ||
                 id(operation_mode).current_option() == "manual" && id(selected_setting) > 1;
             then:
               - lambda: |-
@@ -286,7 +318,19 @@ binary_sensor:
           return id(outside_humidity_relation).state >= 0;
         // Keep window closed
         return false;
-      }
+      };
+      if (id(operation_mode).current_option() == "scheduled") {
+        // the following lines extract minutes after midnight 00:00 
+        // to ensure time comparison without date confusions
+        int now_min   = id(sntp_time).now().hour * 60 + id(sntp_time).now().minute;
+        int open_min  = id(open_time).hour * 60 + id(open_time).minute;
+        int close_min = id(close_time).hour * 60 + id(close_time).minute;
+        if (open_min < close_min)   // open during the day
+          return now_min >= open_min && now_min < close_min;
+        if (open_min > close_min)   // open during the night / over midnight
+          return now_min >= open_min || now_min < close_min;
+        return false;
+      };
       return false;
     on_press:
       - script.execute: process_window_request
@@ -655,7 +699,7 @@ font:
       - "\U000F13AB" # mdi:timer
       - "\U000F17C6" # mdi:water-sync / mode: humidity
       - "\U000F1B0F" # mdi:thermometer-auto / mode: temperature
-      - "\U000F0954" # mdi:clock / mode: time-based
+      - "\U000F0954" # mdi:clock / mode: scheduled
       - "\U000F0B14" # mdi:alpha-m-box / mode: manual
   - file: "fonts/materialdesignicons-webfont.ttf"
     id: big_icons
@@ -669,7 +713,7 @@ font:
       - "\U000F150A" # mdi:water-plus
       - "\U000F1504" # mdi:water-check
       - "\U000F17C6" # mdi:water-sync / mode: humidity
-      - "\U000F0954" # mdi:clock / mode: time-based
+      - "\U000F0954" # mdi:clock / mode: scheduled
       - "\U000F0B14" # mdi:alpha-m-box / mode: manual
 
 display:
@@ -699,7 +743,7 @@ display:
             mode_icon = "\U000F17C6";  // mdi:water-sync
           } else if (id(operation_mode).current_option() ==  "temperature") {
             mode_icon = "\U000F1B0F";  // mdi:thermometer-auto
-          } else if (id(operation_mode).current_option() == "time-based") {
+          } else if (id(operation_mode).current_option() == "scheduled") {
               mode_icon = "\U000F0954";  // mdi:clock
           } else if (id(operation_mode).current_option() == "manual") {
               mode_icon = "\U000F0B14";  // mdi:alpha-m-box
@@ -738,7 +782,7 @@ display:
           } else if (id(operation_mode).current_option() ==  "temperature") {
             it.printf(76, 40, id(big_icons), "%s", temp_icon);
             it.printf(100, 40, id(big_icons), "%s", humid_icon);
-          } else if (id(operation_mode).current_option() == "time-based") {
+          } else if (id(operation_mode).current_option() == "scheduled") {
               // TODO: more to come
           } else if (id(operation_mode).current_option() == "manual") {
               it.printf(80, 44, id(font_text), "%.0f %%",
