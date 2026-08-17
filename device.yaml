@@ -205,11 +205,7 @@ script:
           } else {
             id(delay_remaining_ms) = 0;
           }
-      - if:
-          condition:
-            lambda: 'return id(delay_remaining_ms) > 0;'
-          then:
-            - delay: !lambda "return id(delay_remaining_ms);"
+      - delay: !lambda "return id(delay_remaining_ms);"
       - if:
           condition:
             binary_sensor.is_on: window_request
@@ -225,30 +221,14 @@ script:
             lambda: 'return id(display_page) == 0;'
           then:
             - display.page.show: status_page
-      - if:
-          condition:
-            lambda: |-
-              return id(display_page) == 1 && id(operation_mode).current_option() == "humidity";
-          then:
-            - display.page.show: settings_humidity
-      - if:
-          condition:
-            lambda: |-
-              return id(display_page) == 1 && id(operation_mode).current_option() == "temperature";
-          then:
-            - display.page.show: settings_temperature
-      - if:
-          condition:
-            lambda: |-
-              return id(display_page) == 1 && id(operation_mode).current_option() == "scheduled";
-          then:
-            - display.page.show: settings_schedule
-      - if:
-          condition:
-            lambda: |-
-              return id(display_page) == 1 && id(operation_mode).current_option() == "manual";
-          then:
-            - display.page.show: settings_manual
+          else:
+            - display.page.show: !lambda |-
+                const auto mode = id(operation_mode).current_option();
+                if (mode == "humidity") { return id(settings_humidity); };
+                if (mode == "temperature") { return id(settings_temperature); };
+                if (mode == "scheduled") { return id(settings_schedule); };
+                if (mode == "manual") { return id(settings_manual); };
+                return id(status_page);  // fallback
       - component.update: my_display
 
 
