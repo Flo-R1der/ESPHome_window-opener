@@ -174,7 +174,7 @@ datetime:
   - platform: template
     id: open_time
     type: time
-    name: Öffnungs Zeit
+    name: "Öffnen Zeit"
     entity_category: config
     optimistic: yes
     initial_value: "20:00:00"
@@ -184,7 +184,7 @@ datetime:
   - platform: template
     id: close_time
     type: time
-    name: Schließen Zeit
+    name: "Schließen Zeit"
     entity_category: config
     optimistic: yes
     initial_value: "08:00:00"
@@ -385,13 +385,13 @@ sensor:
     i2c_id: i2c_inside
     variant: AHT20
     temperature:
-      name: "Innentemperatur"
+      name: "Temperatur innen"
       id: inside_temperature
       device_class: temperature
       state_class: measurement
       accuracy_decimals: 1
     humidity:
-      name: "Innenluftfeuchtigkeit"
+      name: "Luftfeuchtigkeit innen"
       id: inside_humidity
       device_class: humidity
       state_class: measurement
@@ -402,13 +402,13 @@ sensor:
     i2c_id: i2c_outside
     variant: AHT20
     temperature:
-      name: "Außentemperatur"
+      name: "Temperatur außen"
       id: outside_temperature
       device_class: temperature
       state_class: measurement
       accuracy_decimals: 1
     humidity:
-      name: "Außenluftfeuchtigkeit"
+      name: "Luftfeuchtigkeit außen"
       id: outside_humidity
       device_class: humidity
       state_class: measurement
@@ -686,6 +686,7 @@ sensor:
     name: "Luftfeuchtigkeit innen absolut"
     icon: mdi:water
     device_class: humidity
+    state_class: measurement
     unit_of_measurement: "g/m³"
     accuracy_decimals: 2
     lambda: |-
@@ -698,6 +699,7 @@ sensor:
     name: "Luftfeuchtigkeit außen absolut"
     icon: mdi:water
     device_class: humidity
+    state_class: measurement
     unit_of_measurement: "g/m³"
     accuracy_decimals: 2
     lambda: |-
