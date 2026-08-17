@@ -43,6 +43,45 @@ wifi:
 captive_portal:
     
 
+globals:
+  # variables for minimum open/close time between actions
+  - id: last_motion
+    type: uint32_t
+    restore_value: no
+    initial_value: '0'
+  - id: delay_remaining_ms
+    type: uint32_t
+    restore_value: no
+    initial_value: '0'
+  # variables for display page and selected setting
+  - id: display_page
+    type: uint8_t
+    restore_value: no
+    initial_value: '0'
+      # 0 = status page
+      # 1 = settings page
+  - id: selected_setting
+    type: uint8_t
+    restore_value: no
+    initial_value: '0'
+      #   | MODE: humidity         | MODE: temperature      | MODE: scheduled    | MODE: manual   |
+      # 0 | - nothing -            | - nothing -            | - nothing -        | - nothing -    |
+      # 1 | operation_mode         | operation_mode         | operation_mode     | operation_mode |
+      # 2 | target_humidity        | target_temperature     | open time HOURS    | BACK           |
+      # 3 | humidity_hysteresis    | temperature_hysteresis | open time MINUTES  |
+      # 4 | target_temperature     | target_humidity        | close time HOURS   |
+      # 5 | temperature_hysteresis | humidity_hysteresis    | close time MINUTES |
+      # 6 | minimum_time           | minimum_time           | BACK
+      # 7 | BACK                   | BACK
+  - id: last_user_input
+    type: uint32_t
+    restore_value: no
+    initial_value: '0'
+  - id: manual_position
+    type: uint8_t
+    restore_value: true
+    initial_value: '100'
+    # for opening % in manual mode
 
 number:
   - platform: template
@@ -152,45 +191,6 @@ datetime:
     restore_value: true
     time_id: sntp_time
 
-globals:
-  # variables for minimum open/close time between actions
-  - id: last_motion
-    type: uint32_t
-    restore_value: no
-    initial_value: '0'
-  - id: delay_remaining_ms
-    type: uint32_t
-    restore_value: no
-    initial_value: '0'
-  # variables for display page and selected setting
-  - id: display_page
-    type: uint8_t
-    restore_value: no
-    initial_value: '0'
-      # 0 = status page
-      # 1 = settings page
-  - id: selected_setting
-    type: uint8_t
-    restore_value: no
-    initial_value: '0'
-      #   | MODE: humidity         | MODE: temperature      | MODE: scheduled    | MODE: manual   |
-      # 0 | - nothing -            | - nothing -            | - nothing -        | - nothing -    |
-      # 1 | operation_mode         | operation_mode         | operation_mode     | operation_mode |
-      # 2 | target_humidity        | target_temperature     | open time HOURS    | BACK           |
-      # 3 | humidity_hysteresis    | temperature_hysteresis | open time MINUTES  |
-      # 4 | target_temperature     | target_humidity        | close time HOURS   |
-      # 5 | temperature_hysteresis | humidity_hysteresis    | close time MINUTES |
-      # 6 | minimum_time           | minimum_time           | BACK
-      # 7 | BACK                   | BACK
-  - id: last_user_input
-    type: uint32_t
-    restore_value: no
-    initial_value: '0'
-  - id: manual_position
-    type: uint8_t
-    restore_value: true
-    initial_value: '100'
-    # for opening % in manual mode
 
 script:
   - id: process_window_request
