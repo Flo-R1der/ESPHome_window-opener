@@ -851,16 +851,30 @@ display:
     pages:
       - id: status_page
         lambda: |-
+          // switch back and forth between relative huminity and absolute humidity
+          const bool show_absolute = ((millis() / 7000) % 2) == 1;
           // Line 1 - inside measurements
           it.printf(0, 0, id(font_icons), "\U000F0F9C");   // mdi:home-import-outline
-          it.printf(22, 0, id(font_text), "%.1f°C / %.1f%%",
-                    id(inside_temperature).state,
-                    id(inside_humidity).state);
+          if (show_absolute) {
+            it.printf(22, 0, id(font_text), "%.1f°C / %.2fg",
+                      id(inside_temperature).state,
+                      id(absolute_humidity_inside).state);
+          } else {
+            it.printf(22, 0, id(font_text), "%.1f°C / %.1f%%",
+                      id(inside_temperature).state,
+                      id(inside_humidity).state);
+          }
           // Line 2 - outside measurements
           it.printf(0, 16, id(font_icons), "\U000F0F9B");   // mdi:home-export-outline
-          it.printf(22, 16, id(font_text), "%.1f°C / %.1f%%",
-                    id(outside_temperature).state,
-                    id(outside_humidity).state);
+          if (show_absolute) {
+            it.printf(22, 16, id(font_text), "%.1f°C / %.2fg",
+                      id(outside_temperature).state,
+                      id(absolute_humidity_outside).state);
+          } else {
+            it.printf(22, 16, id(font_text), "%.1f°C / %.1f%%",
+                      id(outside_temperature).state,
+                      id(outside_humidity).state);
+          }
           // Line 3 - mode and status
           const char *mode_icon = "?";  // theoretical not possible
           if (id(operation_mode).current_option() ==  "humidity") {
