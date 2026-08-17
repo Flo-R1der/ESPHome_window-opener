@@ -297,33 +297,46 @@ binary_sensor:
     id: window_request
     name: "Fenster öffnen?"
     lambda: |-
+      bool humidity_high = id(inside_humidity_state).state > 0;
+      bool humidity_low  = id(inside_humidity_state).state < 0;
+      bool outside_less_humid = 
+          id(absolute_humidity_outside).state <
+          id(absolute_humidity_inside).state;
+      bool outside_more_humid =
+          id(absolute_humidity_outside).state >
+          id(absolute_humidity_inside).state;
+      bool temperature_high = id(inside_temperature_state).state > 0;
+      bool temperature_low = id(inside_temperature_state).state < 0;
+      bool outside_hotter = 
+          id(outside_temperature).state > id(inside_temperature).state;
+      bool outside_colder = 
+          id(outside_temperature).state < id(inside_temperature).state;
+
       if (id(operation_mode).current_option() == "humidity") {
+        bool temp_relation_ok = true;
+          if (temperature_high) {temp_relation_ok = !outside_hotter;};
+          if (temperature_low) {temp_relation_ok = !outside_colder;};
         // Humidity Control
-        if (id(inside_humidity_state).state > 0)  // Too humid inside
-          return id(outside_humidity_relation).state <= 0;
-        if (id(inside_humidity_state).state < 0)  // Too dry inside
-          return id(outside_humidity_relation).state >= 0;
+        if (humidity_high) {return !outside_more_humid && temp_relation_ok;};
+        if (humidity_low) {return !outside_less_humid && temp_relation_ok;};
         // Humidity OK -> Temperature Control
-        if (id(inside_temperature_state).state > 0)  // Too warm inside
-          return id(outside_temperature_relation).state <= 0; 
-        if (id(inside_temperature_state).state < 0)  // Too cold inside
-          return id(outside_temperature_relation).state >= 0;
-        // Keep window closed
-        return false;
+        if (temperature_high) {return !outside_hotter;};
+        if (temperature_low) {return !outside_colder;};
+        // Get fresh air inside as default
+        return true;
       };
       if (id(operation_mode).current_option() == "temperature") {
+        bool humidity_relation_ok = true;
+          if (humidity_high) {humidity_relation_ok = !outside_more_humid;};
+          if (humidity_low) {humidity_relation_ok = !outside_less_humid;};
         // Temperature Control
-        if (id(inside_temperature_state).state > 0)  // Too warm inside
-          return id(outside_temperature_relation).state <= 0; 
-        if (id(inside_temperature_state).state < 0)  // Too cold inside
-          return id(outside_temperature_relation).state >= 0;
+        if (temperature_high) {return !outside_hotter && humidity_relation_ok;};
+        if (temperature_low) {return !outside_colder && humidity_relation_ok;};
         // Temperature OK -> Humidity Control
-        if (id(inside_humidity_state).state > 0)  // Too humid inside
-          return id(outside_humidity_relation).state <= 0;
-        if (id(inside_humidity_state).state < 0)  // Too dry inside
-          return id(outside_humidity_relation).state >= 0;
-        // Keep window closed
-        return false;
+        if (humidity_high) {return outside_less_humid;};
+        if (humidity_low) {return outside_more_humid;};
+        // Get fresh air inside as default
+        return true;
       };
       if (id(operation_mode).current_option() == "scheduled") {
         // the following lines extract minutes after midnight 00:00 
@@ -344,17 +357,19 @@ binary_sensor:
       - script.execute: process_window_request
 
   - platform: template
-    id: humidity_high
-    name: "Luftfeuchte überschritten"
+    id: humidity_ok
+    name: "Luftfeuchtigkeit OK?"
     lambda: |-
-      return id(inside_humidity_state).state > 0;
+      return id(inside_humidity_state).state != 0;
     device_class: problem
+    filters:
+      - delayed_on: 1s
 
   - platform: template
-    id: temperature_high
-    name: "Temperatur überschritten"
+    id: temperature_ok
+    name: "Temperatur OK?"
     lambda: |-
-      return id(inside_temperature_state).state > 0;
+      return id(inside_temperature_state).state != 0;
     device_class: problem
 
 
