@@ -114,7 +114,7 @@ number:
 
   - platform: template
     id: temperature_hysteresis
-    name: "Hysterese Temperatur"
+    name: "± Temperatur"
     entity_category: config
     optimistic: true
     restore_value: true
@@ -127,7 +127,7 @@ number:
 
   - platform: template
     id: humidity_hysteresis
-    name: "Hysterese Feuchtigkeit"
+    name: "± Feuchtigkeit"
     entity_category: config
     optimistic: true
     restore_value: true
@@ -664,7 +664,7 @@ sensor:
     lambda: |-
       const float t = id(inside_temperature).state;
       const float target = id(target_temperature).state;
-      const float h = id(temperature_hysteresis).state / 2.0f;
+      const float h = id(temperature_hysteresis).state;
       if (t >= target + h)
         return 1;  // above target temperature
       if (t <= target - h)
@@ -678,7 +678,7 @@ sensor:
     lambda: |-
       const float h = id(inside_humidity).state;
       const float target = id(target_humidity).state;
-      const float hyst = id(humidity_hysteresis).state / 2.0f;
+      const float hyst = id(humidity_hysteresis).state;
       if (h >= target + hyst)
         return 1;  // above target humidity
       if (h <= target - hyst)
@@ -687,28 +687,52 @@ sensor:
     update_interval: 10s
 
   - platform: template
+    id: absolute_humidity_inside
+    name: "Luftfeuchtigkeit innen absolut"
+    icon: mdi:water
+    device_class: humidity
+    unit_of_measurement: "g/m³"
+    accuracy_decimals: 2
+    lambda: |-
+      const float T = id(inside_temperature).state;
+      const float RH = id(inside_humidity).state;
+      return (6.112f * exp((17.67f * T) / (T + 243.5f)) * RH * 2.1674f) / (273.15f + T);
+
+  - platform: template
+    id: absolute_humidity_outside
+    name: "Luftfeuchtigkeit außen absolut"
+    icon: mdi:water
+    device_class: humidity
+    unit_of_measurement: "g/m³"
+    accuracy_decimals: 2
+    lambda: |-
+      const float T = id(outside_temperature).state;
+      const float RH = id(outside_humidity).state;
+      return (6.112f * exp((17.67f * T) / (T + 243.5f)) * RH * 2.1674f) / (273.15f + T);
+
+  - platform: template
     id: outside_temperature_relation
     internal: true
     lambda: |-
-      const float h = id(temperature_hysteresis).state / 2.0f;
+      const float h = id(temperature_hysteresis).state;
       if (id(outside_temperature).state >= id(inside_temperature).state + h)
         return 1;  // outside temperature is above inside temperature
       if (id(outside_temperature).state <= id(inside_temperature).state - h)
         return -1; // outside temperature is below inside temperature
       return 0;    // outside temperature is within the hysteresis range
-    update_interval: 5s
+    update_interval: 30s
 
   - platform: template
     id: outside_humidity_relation
     internal: true
     lambda: |-
-      const float h = id(humidity_hysteresis).state / 2.0f;
-      if (id(outside_humidity).state >= id(inside_humidity).state + h)
+      const float h = id(humidity_hysteresis).state / 5.0f; // 1% humidity is ~ 0,2g/m³ absolute humidity
+      if (id(absolute_humidity_outside).state >= id(absolute_humidity_inside).state + h)
         return 1;  // outside humidity is above inside humidity
-      if (id(outside_humidity).state <= id(inside_humidity).state - h)
-        return -1; // outside humidity is below inside humidity
-      return 0;    // outside humidity is within the hysteresis range
-    update_interval: 5s
+      if (id(absolute_humidity_outside).state <= id(absolute_humidity_inside).state - h)
+        return -1;  // outside humidity is below inside humidity
+      return 0;     // outside humidity is within hysteresis range
+    update_interval: 30s
 
 
 switch:
