@@ -727,7 +727,7 @@ switch:
   - platform: gpio
     id: relay_open
     pin:
-      number: GPIO32  # On-Board Relay 1
+      number: GPIO26 # On-Board Relay 4
       inverted: false
     restore_mode: ALWAYS_OFF
     internal: true
@@ -737,7 +737,7 @@ switch:
   - platform: gpio
     id: relay_close
     pin:
-      number: GPIO33  # On-Board Relay 2
+      number: GPIO25  # On-Board Relay 3
       inverted: false
     restore_mode: ALWAYS_OFF
     internal: true
