@@ -4,9 +4,10 @@ substitutions:
   local_domain: ".fritz.box"
   area: Keller
 
-  open_duration: 15s
-  close_duration: 17s
-  
+  open_duration: 15s  # unit required
+  close_duration: 17s  # unit required
+
+  display_timeout_milliseconds: 30000  # type: int / no unit allowed!
 
 
 esphome:
@@ -253,13 +254,17 @@ binary_sensor:
     on_press:
       then:
         - lambda: |-
-            id(last_user_input) = millis();
+            // just wake-up the screen
+            if (millis() - id(last_user_input) > ${display_timeout_milliseconds}) {return;};
+
+            // select display page and setting
             if (id(display_page) == 0) {
               id(display_page) = 1;
               id(selected_setting) = 1;
             } else {
               id(selected_setting)++;
             };
+            // reset to status page after the last settings option per operation mode
             if ((id(operation_mode).current_option() == "humidity" && id(selected_setting) > 6) ||
               (id(operation_mode).current_option() == "temperature" && id(selected_setting) > 6) ||
               (id(operation_mode).current_option() == "scheduled" && id(selected_setting) > 5) ||
@@ -267,6 +272,7 @@ binary_sensor:
                 id(display_page) = 0;
                 id(selected_setting) = 0;
             };
+        - lambda: 'id(last_user_input) = millis();'
         - script.execute: display_updater
 
 
@@ -830,7 +836,10 @@ display:
     pages:
       - id: status_page
         lambda: |-
-          // switch back and forth between relative huminity and absolute humidity
+          // clear display after 30 seconds without user input
+          if (millis() - id(last_user_input) > ${display_timeout_milliseconds}) {return;};
+
+          // switch back and forth between relative and absolute humidity
           const bool show_absolute = ((millis() / 7000) % 2) == 1;
           // Line 1 - inside measurements
           it.printf(0, 0, id(font_icons), "\U000F0F9C");   // mdi:home-import-outline
