@@ -216,19 +216,15 @@ script:
   - id: display_updater
     mode: restart
     then:
-      - if:
-          condition:
-            lambda: 'return id(display_page) == 0;'
-          then:
-            - display.page.show: status_page
-          else:
-            - display.page.show: !lambda |-
-                const auto mode = id(operation_mode).current_option();
-                if (mode == "humidity") { return id(settings_humidity); };
-                if (mode == "temperature") { return id(settings_temperature); };
-                if (mode == "scheduled") { return id(settings_schedule); };
-                if (mode == "manual") { return id(settings_manual); };
-                return id(status_page);  // fallback
+      - display.page.show: !lambda |-
+          if (id(display_page) == 1 ) {
+            const auto mode = id(operation_mode).current_option();
+            if (mode == "humidity") { return id(settings_humidity); };
+            if (mode == "temperature") { return id(settings_temperature); };
+            if (mode == "scheduled") { return id(settings_schedule); };
+            if (mode == "manual") { return id(settings_manual); };
+          };
+          return id(status_page);
       - component.update: my_display
 
 
@@ -257,21 +253,16 @@ binary_sensor:
               id(selected_setting) = 1;
             } else {
               id(selected_setting)++;
-            }
+            };
+            if ((id(operation_mode).current_option() == "humidity" && id(selected_setting) > 6) ||
+              (id(operation_mode).current_option() == "temperature" && id(selected_setting) > 6) ||
+              (id(operation_mode).current_option() == "scheduled" && id(selected_setting) > 5) ||
+              (id(operation_mode).current_option() == "manual" && id(selected_setting) > 1)) {
+                id(display_page) = 0;
+                id(selected_setting) = 0;
+            };
         - script.execute: display_updater
-        - if:
-            condition:
-              lambda: |-
-                return (id(operation_mode).current_option() == "humidity" && id(selected_setting) > 6) ||
-                (id(operation_mode).current_option() == "temperature" && id(selected_setting) > 6) ||
-                (id(operation_mode).current_option() == "scheduled" && id(selected_setting) > 5) ||
-                (id(operation_mode).current_option() == "manual" && id(selected_setting) > 1);
-            then:
-              - lambda: |-
-                  id(display_page) = 0;
-                  id(selected_setting) = 0;
-              - display.page.show: status_page
-              - component.update: my_display
+
 
   - platform: template
     id: window_request
