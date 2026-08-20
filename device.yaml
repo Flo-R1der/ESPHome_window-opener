@@ -2,11 +2,17 @@ substitutions:
   device_name: "kellerfenster-vorratsraum"  # only lowercase, numbers, - and _ allowed!
   friendly_name: "Kellerfenster Vorratsraum"
   local_domain: ".fritz.box"
+  area: Keller
+
+  open_duration: 15s
+  close_duration: 17s
+  
 
 
 esphome:
   name: ${device_name}
   friendly_name: ${friendly_name}
+  area: ${area}
 
 esp32:
   board: esp32dev
@@ -750,29 +756,29 @@ cover:
     id: window
     name: "Kellerfenster"
     device_class: window
+    has_built_in_endstop: false
 
     open_action:
       - switch.turn_off: relay_close
       - switch.turn_on: relay_open
-      - lambda: |-
-          id(last_motion) = millis();
 
-    open_duration: 10s
+    open_duration: ${open_duration}
 
     close_action:
       - switch.turn_off: relay_open
       - switch.turn_on: relay_close
-      - lambda: |-
-          id(last_motion) = millis();
 
-    close_duration: 10s
+    close_duration: ${close_duration}
 
     stop_action:
       - switch.turn_off: relay_open
       - switch.turn_off: relay_close
 
     on_idle:
+      - switch.turn_off: relay_open
+      - switch.turn_off: relay_close
       - lambda: 'id(manual_position) = id(window).position * 100;'
+      - lambda: 'id(last_motion) = millis();'
 
 
 font:
@@ -1107,11 +1113,11 @@ interval:
     then:
       - if:
           condition:
-            lambda: |-
+            lambda: |
               return id(display_page) == 1 &&
               millis() - id(last_user_input) > 10000;
           then:
-            - lambda: |-
+            - lambda: |
                 id(display_page) = 0;
                 id(selected_setting) = 0;
             - display.page.show: status_page
