@@ -797,7 +797,7 @@ font:
       - "\U000F17C6" # mdi:water-sync / mode: humidity
       - "\U000F1B0F" # mdi:thermometer-auto / mode: temperature
       - "\U000F0954" # mdi:clock / mode: scheduled
-      - "\U000F0741" # mdi:gesture-tap / mode: manual
+      - "\U000F0004" # mdi:account / mode: manual
   - file: "fonts/materialdesignicons-webfont.ttf"
     id: big_icons
     size: 26
@@ -811,7 +811,7 @@ font:
       - "\U000F1504" # mdi:water-check
       - "\U000F17C6" # mdi:water-sync / mode: humidity
       - "\U000F0954" # mdi:clock / mode: scheduled
-      - "\U000F0741" # mdi:gesture-tap / mode: manual
+      - "\U000F0004" # mdi:account / mode: manual
 
 display:
   - platform: ssd1306_i2c
@@ -857,7 +857,7 @@ display:
           } else if (id(operation_mode).current_option() == "scheduled") {
               mode_icon = "\U000F0954";  // mdi:clock
           } else if (id(operation_mode).current_option() == "manual") {
-              mode_icon = "\U000F0741";  // mdi:gesture-tap
+              mode_icon = "\U000F0004";  // mdi:account
           }
           it.printf(0, 44, id(font_text), "Mode:");
           it.printf(38, 39, id(big_icons), "%s", mode_icon);
@@ -1094,7 +1094,7 @@ display:
       - id: settings_manual
         lambda: |-
           // Line 1 - Mode settings
-          const char *mode_icon = "\U000F0741";  // mdi:gesture-tap
+          const char *mode_icon = "\U000F0004";  // mdi:account
           it.printf(0, 0, id(font_text), "Mode:");
           it.filled_rectangle(45, 0, 23, 16);
           it.printf(48, 0, id(font_icons), Color::BLACK, "%s", mode_icon);
