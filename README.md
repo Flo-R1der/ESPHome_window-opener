@@ -111,3 +111,56 @@ Manual Mode gives the user direct control over the window position. The rotary e
  > Feel free to swap components. But keep in mind, that some code blocks might require an update and depending on the communication between the components also different GPIOs must be used.
 
 
+### 📍Pinout
+
+| Component                   | ESP32 GPIO | Note                   |
+| --------------------------- | ---------- | ---------------------- |
+| Rotary encoder A            | GPIO16     |                        |
+| Rotary encoder B            | GPIO17     |                        |
+| Rotary encoder push button  | GPIO5      |                        |
+| Indoor AHT20 + OLED display | GPIO19     | I²C (inside) SCL       |
+| Indoor AHT20 + OLED display | GPIO21     | I²C (inside) SDA       |
+| Outdoor AHT20               | GPIO22     | I²C (outside) SCL      |
+| Outdoor AHT20               | GPIO23     | I²C (outside) SDA      |
+| Relay – Close window        | GPIO25/32  | Depending on the board |
+| Relay – Open window         | GPIO26/33  | Depending on the board |
+
+> The indoor/outdoor AHT20 sensor using a separate I²C bus, allowing both sensors to operate independently despite using the same I²C address (0x38).  
+> The GPIOs for the relays are heavily depending on the board used. The firmware explicitly switches the opposite relay off before activating either direction.
+
+
+### 🔌Wiring
+
+> [!CAUTION]  
+> Do not work on 230V applications, unless you are a qualified electrician.
+
+![diagrams_schema](diagrams_schema.svg)
+
+---
+
+## 🛠️ Installation
+
+### 📥 ESPHome Installation
+
+Prerequisites: [Install ESPHome](https://esphome.io/install/)
+
+1. Download the `device.yaml` from this repository.
+
+2. Adjust the configuration to match your environment, especially:
+   - All substitutions on the to of the yaml-file.
+   - Wi-Fi credentials + Hotspot Password
+   - API encryption key
+   - OTA password
+   - Rename the _friendly_names_ to match your need
+
+3. Connect the ESP32 to your computer via an _UART-TTL USB Adapter_ and install the firmware.
+    <details>
+       <summary>See diagram for connection details</summary>
+       <img src="diagram_flashing-ports.svg">
+    </details>
+   
+   [▶ See official documentation for command line syntax and other options](https://esphome.io/install/getting-started/#updating-your-device)
+
+4. After the initial installation, further updates can be installed over the air.
+
+5. The device can be discovered in Home Assistant through the ESPHome integration. Adding your edited yaml to the ESPHome Addon (if used) would be advisable, as it enables automatic ESPHome updates.
