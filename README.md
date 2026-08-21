@@ -88,6 +88,32 @@ Manual Mode gives the user direct control over the window position. The rotary e
 
 ---
 
+## 🕹️ Local User Interface
+
+The controller can be operated and configured directly on the device using a rotary encoder with an integrated push button and an OLED display. This allows a **standalone operation and configuration**. If the device is integrated into Home Assistant the settings are also accessible from there, along with the actual sensor values.
+
+### 📟 Status Screen
+
+The default screen provides an overview of the current operating state of the controller.
+
+| Humidity Mode (relative humidity shown) | Temperature Mode (absolute humidity shown) |
+| --------------------------------------- | ------------------------------------------ |
+| <img src="img_mode_humidity.jpg" height="120"> | <img src="img_mode_temperature.jpg" height="120"> |
+| The bottom right field shows, weather the humidity and temperature is too high ➕, too low ➖ or within the range ✔️. | The bottom right fiend shows, weather the temperature and humidity is too high ➕, too low ➖ or within the range ✔️. |
+|  |  |
+
+
+| Scheduled Mode | Manual Mode |
+| -------------- | ----------- |
+| <img src="img_mode_scheduled.jpg" height="120"> | <img src="img_mode_manual.jpg" height="120"> |
+| The bottom right field shows an countdown, for the next operation (open/close). | The bottom right field shows the opening percentage of the window. |
+|  |  |
+
+> [!TIP]  
+> After a period of inactivity, the display is turned off automatically to prevent burn-in.
+
+---
+
 ## 🧰 Hardware
 
 ### 🧩 Parts List
