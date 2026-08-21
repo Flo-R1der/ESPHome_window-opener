@@ -51,11 +51,9 @@ flowchart LR
    end
    ```
 </details>
-<br>
 
 ⭐ perfect mode to **combine e.g. with a radiator**
 
-<br>
 
 ### 🌡️ Temperature Mode
 
@@ -75,20 +73,17 @@ flowchart LR
     C -->|No| Y
     B -->|No| Y
 ```
-▶ * the _Outside Humidity OK?_ decision is analogue to the _Outside Temperature decision_ documented above.
-
+\* the _Outside Humidity OK?_ decision is analogue to the _Outside Temperature decision_ documented above.  
 ⭐ perfect mode to **combine with an air dryer**
 
 ### ⏱️ Scheduled Mode
 
-Scheduled Mode opens and closes the window according to configurable times.
-
+Scheduled Mode opens and closes the window according to configurable times.  
 ⭐ perfect mode if you prefer more **predictable open/close times**
 
 ### ⏸️ Manual Mode
 
-Manual Mode gives the user direct control over the window position. The rotary encoder can be used to set the desired window position in 10 % steps.
-
+Manual Mode gives the user direct control over the window position. The rotary encoder can be used to set the desired window position in 10 % steps.  
 ⭐ perfect mode to **let Home Assistant decide with more complex automation**
 
 ---
@@ -126,7 +121,7 @@ Manual Mode gives the user direct control over the window position. The rotary e
 | Relay – Open window         | GPIO26/33  | Depending on the board |
 
 > The indoor/outdoor AHT20 sensor using a separate I²C bus, allowing both sensors to operate independently despite using the same I²C address (0x38).  
-> The GPIOs for the relays are heavily depending on the board used. The firmware explicitly switches the opposite relay off before activating either direction.
+> The GPIOs for the relays are depending on the board.
 
 
 ### 🔌Wiring
@@ -134,7 +129,7 @@ Manual Mode gives the user direct control over the window position. The rotary e
 > [!CAUTION]  
 > Do not work on 230V applications, unless you are a qualified electrician.
 
-![diagrams_schema](diagrams_schema.svg)
+![diagram_schema](diagram_schema.svg)
 
 ---
 
@@ -159,7 +154,7 @@ Prerequisites: [Install ESPHome](https://esphome.io/install/)
        <img src="diagram_flashing-ports.svg">
     </details>
    
-   [▶ See official documentation for command line syntax and other options](https://esphome.io/install/getting-started/#updating-your-device)
+   [See official documentation for command line syntax and other options](https://esphome.io/install/getting-started/#updating-your-device)
 
 4. After the initial installation, further updates can be installed over the air.
 
