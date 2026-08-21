@@ -112,6 +112,48 @@ The default screen provides an overview of the current operating state of the co
 > [!TIP]  
 > After a period of inactivity, the display is turned off automatically to prevent burn-in.
 
+### 🕛 Rotary Encoder Controls
+
+The rotary encoder is used to:
+- manually open and close the window
+- navigate through the user interface, to adjust the configuration values
+
+[![Click here to see an example Video](https://i9.ytimg.com/vi/pyNii1Dii28/mqdefault.jpg?sqp=CNzCotQG-oaymwEmCMACELQB8quKqQMa8AEB-AH-CYAC0AWKAgwIABABGHIgUig3MA8=&rs=AOn4CLDN5XKPcIpA_QIo2cyiQGpbBOjQOA)](https://youtu.be/pyNii1Dii28)  
+Click on the thumbnail to watch the demo-video.
+
+<details>
+   <summary>Open here to see all settings pages</summary>
+
+   | Humidity Mode (relative humidity shown) | Temperature Mode (absolute humidity shown) |
+   | --------------------------------------- | ------------------------------------------ |
+   | <img src="img_settings_humidity.jpg" height="120"> | <img src="img_settings_temperature.jpg" height="120"> |
+
+   | Scheduled Mode | Manual Mode |
+   | -------------- | ----------- |
+   | <img src="img_settings_scheduled.jpg" height="120"> | <img src="img_settings_manual.jpg" height="120"> |
+
+   > [!TIP]  
+   > Rotate the encoder to change the settings. Push the encoder to switch to the next option.
+
+</details>
+<br>
+
+### ⚙️ Settings
+
+The available settings are **based on the selected operation mode**:
+
+| Option                                | Modes                  | Default Values |
+| ------------------------------------- | ---------------------- | -------------- |
+| Target indoor humidity                | Humidity + Temperature | 54.0 %         |
+| Humidity hysteresis                   | Humidity + Temperature | ± 4.0 %        |
+| Target indoor temperature             | Humidity + Temperature | 17.0 °C        |
+| Temperature hysteresis                | Humidity + Temperature | ± 2.0 °C       |
+| Minimum time between window movements | Humidity + Temperature | 10 min         |
+| Open Time                             | Scheduled              | 20:00          |
+| Close Time                            | Scheduled              | 08:00          |
+
+In **Manual Mode**, the desired window position can be adjusted in 10 % steps by rotating the encoder.
+
 ---
 
 ## 🧰 Hardware
