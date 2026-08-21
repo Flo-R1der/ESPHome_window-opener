@@ -227,3 +227,20 @@ Prerequisites: [Install ESPHome](https://esphome.io/install/)
 4. After the initial installation, further updates can be installed over the air.
 
 5. The device can be discovered in Home Assistant through the ESPHome integration. Adding your edited yaml to the ESPHome Addon (if used) would be advisable, as it enables automatic ESPHome updates.
+
+
+### 🪛 Mechanical Installation
+
+Mount the window actuator according to its official documentation. If the the direction of the motor is wrong, swap the GPIO-Pins or ID of  `relay_open` and `relay_close`. You may adjust the `open_duration` and `close_duration`, but assign the `close_duration` +2sec for proper closing.
+
+> [!WARNING]  
+> Make sure that the window can move freely and that no persons or objects can be trapped by the actuator.
+
+<details>
+   <summary>Here you can see, how I assembled the sensors:</summary>
+   <img src="img_sensor_inside.jpg" height="300">
+
+   <img src="img_sensor_outside.jpg" height="350">
+   <img src="img_sensor_outside-cad.png" height="350">
+</details>
+<br>
